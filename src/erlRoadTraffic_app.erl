@@ -17,8 +17,9 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
-    io:format("App startd~n"),
-    erlRoadTraffic_sup:start_link().
+    erlRoadTraffic_sup:start_link(),
+    mapLoader:load(_StartArgs).
+
 
 %%--------------------------------------------------------------------
 stop(_State) ->
