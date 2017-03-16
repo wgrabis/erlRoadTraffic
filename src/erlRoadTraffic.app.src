@@ -1,0 +1,24 @@
+%%%-------------------------------------------------------------------
+%%% @author Jakub Kudzia
+%%% @doc
+%%% Configuration file for erlRoadTraffic.
+%%% @end
+%%%-------------------------------------------------------------------
+
+{application, erlRoadTraffic,
+    [{description, "Application responsible for distributed simulation of traffic"},
+        {vsn, "0.1.0"},
+        {registered, []},
+        {mod, {erlRoadTraffic_app, []}},
+        {applications,
+            [
+                kernel,
+                stdlib
+            ]},
+        {env, []},
+        {modules, []},
+
+        {maintainers, []},
+        {licenses, []},
+        {links, []}
+    ]}.
