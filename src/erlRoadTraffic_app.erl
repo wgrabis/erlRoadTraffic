@@ -18,7 +18,10 @@
 
 start(_StartType, _StartArgs) ->
     erlRoadTraffic_sup:start_link(),
-    mapLoader:load(_StartArgs).
+    MapJson = map_loader:load(_StartArgs),
+    {Nodes, Ways} = map_loader:split_to_nodes_and_ways(MapJson),
+    io:format("Nodes: ~p~n", [Nodes]),
+    io:format("Ways: ~p~n", [Ways]).
 
 
 %%--------------------------------------------------------------------
