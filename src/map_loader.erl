@@ -11,7 +11,6 @@
 %% API
 -export([load/1, split_to_nodes_and_ways/1]).
 
-
 %%%-------------------------------------------------------------------
 %%% @doc
 %%% Loads json from given FilePath

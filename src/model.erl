@@ -46,7 +46,7 @@ initialize(_Nodes, Ways) ->
 %%% Builds adjacency list for each node.
 %%% @end
 %%%-------------------------------------------------------------------
-initialize_road_map(Nodes, Ways) ->
+initialize_road_map(Nodes, Graph, XGraph) ->
     #road_map{
         roads = initialize_roads(Nodes, Ways),
         crossroads = initialize_crossroads(Nodes, Ways)
@@ -58,11 +58,54 @@ initialize_road_map(Nodes, Ways) ->
 %%% Builds adjacency list for each node.
 %%% @end
 %%%-------------------------------------------------------------------
-initialize_roads(Nodes, Ways) ->
-    maps:fold(fun(WayId, WayDescription, AccIn) ->
-        Road = initialize_road(Nodes, WayDescription, Ways),
-        AccIn#{WayId => Road}
-    end, #{}, Ways).
+
+walk_node_graph(Visited, Node, Nodes, Graph, XGraph) ->
+  UpdatedVisited = sets:add_element(Node, Visited),
+  RoadMap = #road_map{
+    roads = #{},
+    crossroads = #{Node => initialize_crossroad()}
+  },
+  case maps:get(Node, Graph) of
+    Neighbours -> lists:foldl(
+      (fun(Elem, CurrVisited) ->
+        case sets:is_element(Elem, CurrVisited) of
+          false ->
+            {ChildRoad, ChildVisited} = initialize_road(Graph, XGraph, Nodes, Node, Elem),
+            maps:put(Elem, ChildRoad, RoadMap),
+            sets:union(CurrVisited, ChildVisited);
+          _ ->
+            CurrVisited
+        end
+       end
+      ),
+      UpdatedVisited,
+      Neighbours
+    )
+  end,
+  case maps:get(Node, XGraph) of
+    Neighbours ->
+      lists:foldl(
+      (fun(Elem, {CurrRoadMap, CurrVisited}) ->
+        case sets:is_element(Elem, CurrVisited) of
+          false ->
+            {ChildVisited, ChildMap} = walk_node_graph(CurrVisited, Elem, Nodes, Graph, XGraph),
+            {maps:merge(CurrRoadMap, ChildMap), sets:union(ChildVisited, CurrVisited)};
+          _ ->
+            {CurrRoadMap, CurrVisited}
+        end
+      end),
+      {RoadMap, UpdatedVisited},
+      Neighbours
+      )
+  end,
+  {UpdatedVisited, RoadMap}.
+
+% - zwrocic visited wierzcholki
+
+initialize_road(Graph, XGraph, Nodes, XNode, StartNode) ->
+  Visited = sets:add_element(StartNode, sets:new()),
+  Road = 0,
+  {Road, Visited}.
 
 %%%-------------------------------------------------------------------
 %%% @doc
@@ -70,7 +113,7 @@ initialize_roads(Nodes, Ways) ->
 %%% @end
 %%%-------------------------------------------------------------------
 initialize_road(Nodes, WayDescription, Ways)  ->
-    initialize_fractions(Nodes, WayDescription, Ways).
+    erlang:error(not_implemented).
 
 
 
@@ -80,7 +123,7 @@ initialize_road(Nodes, WayDescription, Ways)  ->
 %%% Builds adjacency list for each node.
 %%% @end
 %%%-------------------------------------------------------------------
-initialize_crossroads(Nodes, Ways) ->
+initialize_crossroad(Node, Graph, XGraph, Ways) ->
     erlang:error(not_implemented).
 
 %%%-------------------------------------------------------------------
@@ -88,7 +131,7 @@ initialize_crossroads(Nodes, Ways) ->
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
-initialize_fractions(Nodes, WayDescription, Ways) ->
+initialize_fraction(Nodes, WayDescription, Ways) ->
     erlang:error(not_implemented).
 
 %%%-------------------------------------------------------------------

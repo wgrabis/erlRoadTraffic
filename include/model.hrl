@@ -18,12 +18,16 @@
 
 -record(crossroad, {
     id :: id(),
-    cells = #{} :: #{id() => cell()}
+    cells = #{} :: #{id() => cell()},
+    roads = #{} :: #{id() => id()}
+
 }).
 
 -record(road, {
     id :: id(),
-    fractions = #{} :: #{id() => road_fraction()}
+    fractions = #{} :: #{id() => road_fraction()},
+    begin_crossroad :: id(),
+    end_crossroad :: id()
 }).
 
 -record(road_fraction, {
