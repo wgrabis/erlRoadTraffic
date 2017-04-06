@@ -1,0 +1,32 @@
+{
+  "elements": [
+    {
+      "type": "way",
+      "id": 1,
+      "nodes": ["N2", "V"]
+    },
+    {
+      "type": "way",
+      "id": 2,
+      "nodes": ["V", "N1"],
+      "tags": {"oneway": "no"}
+    },
+    {
+      "type": "way",
+      "id": 3,
+      "nodes": ["N1", "B"],
+      "tags": {"oneway": "yes"}
+    },
+    {
+      "type": "way",
+      "id": 4,
+      "nodes": ["A", "N1"]
+    },
+    {
+      "type": "way",
+      "id": 5,
+      "nodes": ["N2", "A"],
+      "tags": {"oneway": "yes"}
+    }
+  ]
+}

@@ -1,0 +1,559 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "osm3s": {
+    "timestamp_osm_base": "2017-03-30T21:48:02Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+    {
+      "type": "way",
+      "id": 24611290,
+      "nodes": [
+        267538291,
+        4692967530,
+        2453169963,
+        1876633335,
+        1870103539,
+        1642529074,
+        4447398214,
+        4447398213
+      ],
+      "tags": {
+        "cycleway": "opposite_lane",
+        "foot": "yes",
+        "highway": "residential",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Urzędnicza",
+        "oneway": "yes",
+        "oneway:bicycle": "no",
+        "sidewalk": "both",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 25805258,
+      "nodes": [
+        240985579,
+        4692967544,
+        284547943,
+        1876007222,
+        1929853668,
+        1876117452,
+        281472716,
+        284546704
+      ],
+      "tags": {
+        "highway": "residential",
+        "name": "Racławicka",
+        "oneway": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 26255023,
+      "nodes": [
+        267538291,
+        2652067738,
+        2294047185,
+        2652067760,
+        287536496,
+        284745529
+      ],
+      "tags": {
+        "highway": "residential",
+        "name": "Urzędnicza"
+      }
+    },
+    {
+      "type": "way",
+      "id": 126392224,
+      "nodes": [
+        240985579,
+        1876754692,
+        287628798
+      ],
+      "tags": {
+        "cycleway": "no",
+        "foot": "yes",
+        "highway": "tertiary",
+        "lanes": "2",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Kazimierza Wielkiego",
+        "oneway": "no",
+        "ref": "2265K",
+        "sidewalk": "left",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 177210496,
+      "nodes": [
+        1876633357,
+        1876633358,
+        3377146616,
+        1876568958,
+        2453169976,
+        1876754708,
+        1929452765,
+        240985579
+      ],
+      "tags": {
+        "cycleway": "no",
+        "foot": "yes",
+        "highway": "residential",
+        "lanes": "1",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Nowowiejska",
+        "oneway": "yes",
+        "sidewalk": "both",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 179869869,
+      "nodes": [
+        1903046040,
+        2557705392,
+        1903046038
+      ],
+      "tags": {
+        "access": "private",
+        "highway": "residential",
+        "motor_vehicle": "private",
+        "oneway": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 179869871,
+      "nodes": [
+        1903046037,
+        2557705391,
+        1903046039
+      ],
+      "tags": {
+        "access": "private",
+        "highway": "residential",
+        "motor_vehicle": "private",
+        "oneway": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 189125271,
+      "nodes": [
+        1903046038,
+        1876633357,
+        2525372355,
+        3476229810
+      ],
+      "tags": {
+        "cycleway": "no",
+        "highway": "tertiary",
+        "lanes": "4",
+        "lit": "yes",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Królewska",
+        "oneway": "no",
+        "ref": "2205K",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 189125273,
+      "nodes": [
+        1870103539,
+        3747316737,
+        1879860709,
+        1879860692,
+        1903046037,
+        1903046038
+      ],
+      "tags": {
+        "cycleway": "no",
+        "highway": "tertiary",
+        "lanes": "3",
+        "lit": "yes",
+        "maxspeed:backward": "30",
+        "maxspeed:forward": "50",
+        "maxspeed:forward:conditional": "60 @ (23:00-05:00)",
+        "name": "Królewska",
+        "name:be": "Каралеўская вуліца",
+        "ref": "2205K",
+        "source:maxspeed:backward": "sign",
+        "source:maxspeed:forward": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 475556393,
+      "nodes": [
+        267538291,
+        2652067725,
+        284745536,
+        240985580
+      ],
+      "tags": {
+        "cycleway": "no",
+        "foot": "yes",
+        "highway": "tertiary",
+        "lanes": "3",
+        "lanes:backward": "2",
+        "lanes:forward": "1",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Kazimierza Wielkiego",
+        "oneway": "no",
+        "ref": "2265K",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt",
+        "turn:lanes:backward": "left|through;right"
+      }
+    },
+    {
+      "type": "way",
+      "id": 475556394,
+      "nodes": [
+        4692967529,
+        2652067736,
+        267538291
+      ],
+      "tags": {
+        "cycleway": "no",
+        "foot": "yes",
+        "highway": "tertiary",
+        "lanes": "3",
+        "lanes:backward": "1",
+        "lanes:forward": "2",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Kazimierza Wielkiego",
+        "oneway": "no",
+        "ref": "2265K",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt",
+        "turn:lanes:forward": "left|through;right"
+      }
+    },
+    {
+      "type": "way",
+      "id": 475556395,
+      "nodes": [
+        240985579,
+        4692967545,
+        4692967529
+      ],
+      "tags": {
+        "cycleway": "no",
+        "foot": "yes",
+        "highway": "tertiary",
+        "lanes": "2",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Kazimierza Wielkiego",
+        "oneway": "no",
+        "ref": "2265K",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "node",
+      "id": 240985580,
+      "lat": 50.0726981,
+      "lon": 19.9210960
+    },
+    {
+      "type": "node",
+      "id": 1642529074,
+      "lat": 50.0717672,
+      "lon": 19.9195259
+    },
+    {
+      "type": "node",
+      "id": 1870103539,
+      "lat": 50.0718770,
+      "lon": 19.9195952
+    },
+    {
+      "type": "node",
+      "id": 1876633335,
+      "lat": 50.0719891,
+      "lon": 19.9196703
+    },
+    {
+      "type": "node",
+      "id": 1876633357,
+      "lat": 50.0724381,
+      "lon": 19.9176104
+    },
+    {
+      "type": "node",
+      "id": 1876633358,
+      "lat": 50.0725539,
+      "lon": 19.9176912
+    },
+    {
+      "type": "node",
+      "id": 1879860692,
+      "lat": 50.0720834,
+      "lon": 19.9188703
+    },
+    {
+      "type": "node",
+      "id": 1879860709,
+      "lat": 50.0719192,
+      "lon": 19.9194464
+    },
+    {
+      "type": "node",
+      "id": 1903046037,
+      "lat": 50.0721209,
+      "lon": 19.9187391
+    },
+    {
+      "type": "node",
+      "id": 1903046038,
+      "lat": 50.0721799,
+      "lon": 19.9185243
+    },
+    {
+      "type": "node",
+      "id": 1903046039,
+      "lat": 50.0712270,
+      "lon": 19.9181255
+    },
+    {
+      "type": "node",
+      "id": 1903046040,
+      "lat": 50.0712831,
+      "lon": 19.9179212
+    },
+    {
+      "type": "node",
+      "id": 2453169963,
+      "lat": 50.0721421,
+      "lon": 19.9197747
+    },
+    {
+      "type": "node",
+      "id": 2525372355,
+      "lat": 50.0724780,
+      "lon": 19.9174578
+    },
+    {
+      "type": "node",
+      "id": 2557705391,
+      "lat": 50.0719993,
+      "lon": 19.9186540
+    },
+    {
+      "type": "node",
+      "id": 2557705392,
+      "lat": 50.0720592,
+      "lon": 19.9184384
+    },
+    {
+      "type": "node",
+      "id": 3377146616,
+      "lat": 50.0727546,
+      "lon": 19.9178322
+    },
+    {
+      "type": "node",
+      "id": 3476229810,
+      "lat": 50.0726145,
+      "lon": 19.9169404
+    },
+    {
+      "type": "node",
+      "id": 3747316737,
+      "lat": 50.0719042,
+      "lon": 19.9194983
+    },
+    {
+      "type": "node",
+      "id": 4447398213,
+      "lat": 50.0716707,
+      "lon": 19.9194702
+    },
+    {
+      "type": "node",
+      "id": 4447398214,
+      "lat": 50.0717232,
+      "lon": 19.9195014
+    },
+    {
+      "type": "node",
+      "id": 240985579,
+      "lat": 50.0736678,
+      "lon": 19.9184805
+    },
+    {
+      "type": "node",
+      "id": 267538291,
+      "lat": 50.0729690,
+      "lon": 19.9203648
+    },
+    {
+      "type": "node",
+      "id": 281472716,
+      "lat": 50.0759997,
+      "lon": 19.9195152
+    },
+    {
+      "type": "node",
+      "id": 284546704,
+      "lat": 50.0761433,
+      "lon": 19.9196495
+    },
+    {
+      "type": "node",
+      "id": 284547943,
+      "lat": 50.0738760,
+      "lon": 19.9186478
+    },
+    {
+      "type": "node",
+      "id": 284745529,
+      "lat": 50.0745156,
+      "lon": 19.9211022
+    },
+    {
+      "type": "node",
+      "id": 284745536,
+      "lat": 50.0728808,
+      "lon": 19.9206164
+    },
+    {
+      "type": "node",
+      "id": 287536496,
+      "lat": 50.0737611,
+      "lon": 19.9208600
+    },
+    {
+      "type": "node",
+      "id": 287628798,
+      "lat": 50.0740504,
+      "lon": 19.9172833
+    },
+    {
+      "type": "node",
+      "id": 1876007222,
+      "lat": 50.0741589,
+      "lon": 19.9187933
+    },
+    {
+      "type": "node",
+      "id": 1876117452,
+      "lat": 50.0758224,
+      "lon": 19.9194346
+    },
+    {
+      "type": "node",
+      "id": 1876568958,
+      "lat": 50.0727974,
+      "lon": 19.9178620
+    },
+    {
+      "type": "node",
+      "id": 1876754692,
+      "lat": 50.0738650,
+      "lon": 19.9178695
+    },
+    {
+      "type": "node",
+      "id": 1876754708,
+      "lat": 50.0733517,
+      "lon": 19.9182398
+    },
+    {
+      "type": "node",
+      "id": 1929452765,
+      "lat": 50.0735804,
+      "lon": 19.9184035
+    },
+    {
+      "type": "node",
+      "id": 1929853668,
+      "lat": 50.0749473,
+      "lon": 19.9190909
+    },
+    {
+      "type": "node",
+      "id": 2294047185,
+      "lat": 50.0732719,
+      "lon": 19.9206457
+    },
+    {
+      "type": "node",
+      "id": 2453169976,
+      "lat": 50.0730546,
+      "lon": 19.9180362
+    },
+    {
+      "type": "node",
+      "id": 2652067725,
+      "lat": 50.0729059,
+      "lon": 19.9205473
+    },
+    {
+      "type": "node",
+      "id": 2652067736,
+      "lat": 50.0730497,
+      "lon": 19.9201577
+    },
+    {
+      "type": "node",
+      "id": 2652067738,
+      "lat": 50.0730523,
+      "lon": 19.9204477
+    },
+    {
+      "type": "node",
+      "id": 2652067760,
+      "lat": 50.0736584,
+      "lon": 19.9208147
+    },
+    {
+      "type": "node",
+      "id": 4692967529,
+      "lat": 50.0732271,
+      "lon": 19.9196763
+    },
+    {
+      "type": "node",
+      "id": 4692967530,
+      "lat": 50.0728756,
+      "lon": 19.9202982
+    },
+    {
+      "type": "node",
+      "id": 4692967544,
+      "lat": 50.0737590,
+      "lon": 19.9185538
+    },
+    {
+      "type": "node",
+      "id": 4692967545,
+      "lat": 50.0736101,
+      "lon": 19.9186371
+    }
+
+  ]
+}

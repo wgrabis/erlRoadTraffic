@@ -1,0 +1,34 @@
+{
+  "elements": [
+    {
+      "type": "way",
+      "id": 1,
+      "nodes": ["N2", "V"],
+      "tags": {"oneway": "yes"}
+    },
+    {
+      "type": "way",
+      "id": 2,
+      "nodes": ["V", "N1"],
+      "tags": {"oneway": "yes"}
+    },
+    {
+      "type": "way",
+      "id": 3,
+      "nodes": ["N1", "B"],
+      "tags": {"oneway": "yes"}
+    },
+    {
+      "type": "way",
+      "id": 4,
+      "nodes": ["N1", "A"],
+      "tags": {"oneway": "yes"}
+    },
+    {
+      "type": "way",
+      "id": 5,
+      "nodes": ["A", "N2"],
+      "tags": {"oneway": "no"}
+    }
+  ]
+}

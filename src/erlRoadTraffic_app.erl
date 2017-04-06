@@ -22,8 +22,7 @@ start(_StartType, _StartArgs) ->
     {Nodes, Ways} = map_loader:split_to_nodes_and_ways(MapJson),
 %%    io:format("Nodes: ~p~n", [Nodes]),
 %%    io:format("Ways: ~p~n", [Ways]),
-    Map = map_loader:build_map(Ways),
-    io:format("Map: ~p~n", [Map]).
+    model:initialize(Nodes, Ways).
 
 
 
