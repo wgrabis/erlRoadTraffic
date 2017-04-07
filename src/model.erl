@@ -20,11 +20,16 @@
     -export([build_graphs/1, filter_not_crossroad_vertices/2]).
 -endif.
 -include_lib("eunit/include/eunit.hrl").
+
+-record(edge, {
+  way_id :: id(),
+  node :: id()
+}).
+
 -record(graphData, {
-  graph :: #{id() => []},
-  x_graph :: #{id() => []},
-  node_data :: #{id() => []},
-  way_data :: #{id() => []}}
+  graph :: #{id() => list()},
+  x_graph :: #{id() => list()},
+  way_data :: #{id() => #{}}
 }).
 
 
@@ -53,11 +58,9 @@ initialize(_Nodes, Ways) ->
 %%% Builds adjacency list for each node.
 %%% @end
 %%%-------------------------------------------------------------------
-initialize_road_map(Nodes, Graph, XGraph) ->
-    #road_map{
-        roads = initialize_roads(Nodes, Ways),
-        crossroads = initialize_crossroads(Nodes, Ways)
-    }.
+initialize_road_map(GraphData) ->
+  {_, RoadMap} = walk_node_graph(sets:new(), 0, GraphData),
+  RoadMap.
 
 %%%-------------------------------------------------------------------
 %%% @private
@@ -66,53 +69,61 @@ initialize_road_map(Nodes, Graph, XGraph) ->
 %%% @end
 %%%-------------------------------------------------------------------
 
-walk_node_graph(Visited, Node, Nodes, Graph, XGraph) ->
-  UpdatedVisited = sets:add_element(Node, Visited),
+walk_node_graph(InputVisited, Node, GraphData) ->
+  Visited = sets:add_element(Node, InputVisited),
+  {ChildrenRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
   RoadMap = #road_map{
-    roads = #{},
+    roads = ChildrenRoads,
     crossroads = #{Node => initialize_crossroad()}
   },
-  case maps:get(Node, Graph) of
-    Neighbours ->
-      UpdatedRoadMap = build_roads(Neighbours, Visited, Nodes, Graph, XGraph, Node, RoadMap)
-  end,
-  case maps:get(Node, XGraph) of
-    Neighbours ->
-      lists:foldl(
-      (fun(Elem, {CurrRoadMap, CurrVisited}) ->
-        case sets:is_element(Elem, CurrVisited) of
-          false ->
-            {ChildVisited, ChildMap} = walk_node_graph(CurrVisited, Elem, Nodes, Graph, XGraph),
-            {maps:merge(CurrRoadMap, ChildMap), sets:union(ChildVisited, CurrVisited)};
-          _ ->
-            {CurrRoadMap, CurrVisited}
-        end
-      end),
-      {RoadMap, UpdatedVisited},
-      Neighbours
-      )
-  end,
-  {UpdatedVisited, UpdatedRoadMap}.
+  {ChildrenRoadMap, UpdatedVisited} = build_crossroads(maps:get(Node, GraphData#graphData.x_graph), ChildrenVisited, GraphData),
+  UpdatedRoadMap = #road_map{
+    roads = maps:merge(RoadMap#road_map.roads, ChildrenRoadMap#road_map.roads),
+    crossroads = maps:merge(RoadMap#road_map.crossroads, ChildrenRoadMap#road_map.crossroads)
+  },
+  {UpdatedRoadMap, UpdatedVisited}.
 
 % - zwrocic visited wierzcholki
 
 
-build_roads([Node| Tail], CurrVisited, Nodes, Graph, XGraph, XNode, RoadMap) ->
+
+%%%-------------------------------------------------------------------
+%%% @private
+%%% @doc
+%%% Function recursively building roads,
+%%% for list of neighbouring nodes of a crossroad
+%%% @end
+%%%-------------------------------------------------------------------
+build_roads([], CurrVisited, _, _) ->
+  {#{}, CurrVisited};
+build_roads([Node| Tail], CurrVisited, GraphData, XNode) ->
   case sets:is_element(Node, CurrVisited) of
     false ->
       UpdatedVisited = sets:add_element(Node, CurrVisited),
-      {NodeRoad, NodeVisited} = initialize_road(UpdatedVisited, Graph, XGraph, Nodes, XNode, Node),
-      {TailRoad, TailVisited} = build_roads(Tail, NodeVisited, Nodes, Graph, XGraph, XNode, NodeRoad),
-      {maps:put(Node, TailRoad, RoadMap), sets:union(CurrVisited, TailVisited)};
+      {NodeRoad, NodeVisited} = initialize_road(UpdatedVisited, GraphData, XNode, Node),
+      {TailRoad, TailVisited} = build_roads(Tail, NodeVisited, GraphData, XNode),
+      {maps:put(Node, NodeRoad, TailRoad), sets:union(CurrVisited, TailVisited)};
     _ ->
-      build_roads(Tail, CurrVisited, Nodes, Graph, XGraph, XNode, RoadMap)
+      build_roads(Tail, CurrVisited, GraphData, XNode)
   end.
 
+build_crossroads([], CurrVisited, _)->
+  {road_map#{roads = #{}, crossroads = #{}}, CurrVisited};
+build_crossroads([Node | Tail], CurrVisited, GraphData) ->
+  case sets:is_element(Node, CurrVisited) of
+    false ->
+      {NodeMap, NodeVisited} = walk_node_graph(CurrVisited, Node, GraphData),
+      {TailMap, TailVisited} = build_crossroads(Tail, NodeVisited, GraphData),
+      {road_map#{roads = maps:merge(NodeMap#road_map.roads, TailMap#road_map.roads),
+          crossroads = maps:merge(NodeMap#road_map.crossroads, TailMap#road_map.crossroads)
+        },
+        sets:union(TailVisited, CurrVisited)};
+    _ ->
+      build_crossroads(Tail, CurrVisited, GraphData)
+  end
+.
 
-build_child_crossroads([Node | Tail], CurrVisited, Nodes, Graph, XGraph, RoadMap) ->
-
-
-initialize_road(CurrVisited, Graph, XGraph, Nodes, XNode, StartNode) ->
+initialize_road(CurrVisited, GraphData, XNode, StartNode) ->
   Visited = sets:add_element(StartNode, sets:new()),
   Road = 0,
   {Road, Visited}.
