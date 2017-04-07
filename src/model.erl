@@ -20,6 +20,13 @@
     -export([build_graphs/1, filter_not_crossroad_vertices/2]).
 -endif.
 -include_lib("eunit/include/eunit.hrl").
+-record(graphData, {
+  graph :: #{id() => []},
+  x_graph :: #{id() => []},
+  node_data :: #{id() => []},
+  way_data :: #{id() => []}}
+}).
+
 
 %%%-------------------------------------------------------------------
 %%% API functions
@@ -66,21 +73,8 @@ walk_node_graph(Visited, Node, Nodes, Graph, XGraph) ->
     crossroads = #{Node => initialize_crossroad()}
   },
   case maps:get(Node, Graph) of
-    Neighbours -> lists:foldl(
-      (fun(Elem, CurrVisited) ->
-        case sets:is_element(Elem, CurrVisited) of
-          false ->
-            {ChildRoad, ChildVisited} = initialize_road(Graph, XGraph, Nodes, Node, Elem),
-            maps:put(Elem, ChildRoad, RoadMap),
-            sets:union(CurrVisited, ChildVisited);
-          _ ->
-            CurrVisited
-        end
-       end
-      ),
-      UpdatedVisited,
-      Neighbours
-    )
+    Neighbours ->
+      UpdatedRoadMap = build_roads(Neighbours, Visited, Nodes, Graph, XGraph, Node, RoadMap)
   end,
   case maps:get(Node, XGraph) of
     Neighbours ->
@@ -98,11 +92,27 @@ walk_node_graph(Visited, Node, Nodes, Graph, XGraph) ->
       Neighbours
       )
   end,
-  {UpdatedVisited, RoadMap}.
+  {UpdatedVisited, UpdatedRoadMap}.
 
 % - zwrocic visited wierzcholki
 
-initialize_road(Graph, XGraph, Nodes, XNode, StartNode) ->
+
+build_roads([Node| Tail], CurrVisited, Nodes, Graph, XGraph, XNode, RoadMap) ->
+  case sets:is_element(Node, CurrVisited) of
+    false ->
+      UpdatedVisited = sets:add_element(Node, CurrVisited),
+      {NodeRoad, NodeVisited} = initialize_road(UpdatedVisited, Graph, XGraph, Nodes, XNode, Node),
+      {TailRoad, TailVisited} = build_roads(Tail, NodeVisited, Nodes, Graph, XGraph, XNode, NodeRoad),
+      {maps:put(Node, TailRoad, RoadMap), sets:union(CurrVisited, TailVisited)};
+    _ ->
+      build_roads(Tail, CurrVisited, Nodes, Graph, XGraph, XNode, RoadMap)
+  end.
+
+
+build_child_crossroads([Node | Tail], CurrVisited, Nodes, Graph, XGraph, RoadMap) ->
+
+
+initialize_road(CurrVisited, Graph, XGraph, Nodes, XNode, StartNode) ->
   Visited = sets:add_element(StartNode, sets:new()),
   Road = 0,
   {Road, Visited}.
