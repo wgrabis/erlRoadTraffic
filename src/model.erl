@@ -8,7 +8,7 @@
 %%% @end
 %%%-------------------------------------------------------------------
 -module(model).
--author("Jakub Kudzia").
+-author({"Jakub Kudzia", "Wojciech Grabis"}).
 
 -include("model.hrl").
 
@@ -83,10 +83,6 @@ walk_node_graph(InputVisited, Node, GraphData) ->
   },
   {UpdatedRoadMap, UpdatedVisited}.
 
-% - zwrocic visited wierzcholki
-
-
-
 %%%-------------------------------------------------------------------
 %%% @private
 %%% @doc
@@ -94,18 +90,29 @@ walk_node_graph(InputVisited, Node, GraphData) ->
 %%% for list of neighbouring nodes of a crossroad
 %%% @end
 %%%-------------------------------------------------------------------
+
 build_roads([], CurrVisited, _, _) ->
   {#{}, CurrVisited};
-build_roads([Node| Tail], CurrVisited, GraphData, XNode) ->
-  case sets:is_element(Node, CurrVisited) of
+build_roads([NodeEdge| Tail], CurrVisited, GraphData, XNode) ->
+  case sets:is_element(NodeEdge#edge.node, CurrVisited) of
     false ->
-      UpdatedVisited = sets:add_element(Node, CurrVisited),
-      {NodeRoad, NodeVisited} = initialize_road(UpdatedVisited, GraphData, XNode, Node),
+      {NodeRoad, NodeVisited} = initialize_road(CurrVisited, GraphData, XNode, NodeEdge),
       {TailRoad, TailVisited} = build_roads(Tail, NodeVisited, GraphData, XNode),
-      {maps:put(Node, NodeRoad, TailRoad), sets:union(CurrVisited, TailVisited)};
+      {maps:put(NodeEdge#edge.node, NodeRoad, TailRoad), TailVisited};
     _ ->
+      % insert end road info
       build_roads(Tail, CurrVisited, GraphData, XNode)
   end.
+
+
+%%%-------------------------------------------------------------------
+%%% @private
+%%% @doc
+%%% Function recursively building crossroads part of
+%%% main dfs function, for list of neighbouring
+%%% crossroads
+%%% @end
+%%%-------------------------------------------------------------------
 
 build_crossroads([], CurrVisited, _)->
   {road_map#{roads = #{}, crossroads = #{}}, CurrVisited};
@@ -117,22 +124,31 @@ build_crossroads([Node | Tail], CurrVisited, GraphData) ->
       {road_map#{roads = maps:merge(NodeMap#road_map.roads, TailMap#road_map.roads),
           crossroads = maps:merge(NodeMap#road_map.crossroads, TailMap#road_map.crossroads)
         },
-        sets:union(TailVisited, CurrVisited)};
+        TailVisited};
     _ ->
       build_crossroads(Tail, CurrVisited, GraphData)
   end
 .
 
-initialize_road(CurrVisited, GraphData, XNode, StartNode) ->
-  Visited = sets:add_element(StartNode, sets:new()),
-  Road = 0,
-  {Road, Visited}.
+initialize_road(CurrVisited, GraphData, XNode, StartEdge) ->
+  {Fractions, UpdatedVisited} = build_fractions(CurrVisited, GraphData, XNode, StartEdge, 0),
+  Road = #road{
+    id = StartEdge#edge.node,
+    begin_crossroad = XNode,
+    fractions = Fractions
+  },
+  {Road, UpdatedVisited}.
+
+build_fractions(CurrVisited, GraphData, PrevNode, CurrEdge, FractionNumber) ->
+  case maps:get(CurrEdge)
+  .
 
 %%%-------------------------------------------------------------------
 %%% @doc
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
+
 initialize_road(Nodes, WayDescription, Ways)  ->
     erlang:error(not_implemented).
 
@@ -144,7 +160,7 @@ initialize_road(Nodes, WayDescription, Ways)  ->
 %%% Builds adjacency list for each node.
 %%% @end
 %%%-------------------------------------------------------------------
-initialize_crossroad(Node, Graph, XGraph, Ways) ->
+initialize_crossroad(Node, GraphData) ->
     erlang:error(not_implemented).
 
 %%%-------------------------------------------------------------------
