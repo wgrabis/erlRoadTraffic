@@ -51,6 +51,19 @@
     velocity :: integer()
 }).
 
+-record(edge, {
+    way_id :: id(),
+    node :: id()
+}).
+
+-record(graphData, {
+    graph :: #{id() => list()},
+    x_graph :: #{id() => list()},
+    way_data :: #{id() => #{}}
+}).
+
+
+
 -type id()             :: non_neg_integer().
 -type road_map()       :: #road_map{}.
 -type crossroad()      :: #crossroad{}.

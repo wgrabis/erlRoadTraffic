@@ -18,17 +18,6 @@
 -endif.
 -include_lib("eunit/include/eunit.hrl").
 
--record(edge, {
-  way_id :: id(),
-  node :: id()
-}).
-
--record(graphData, {
-  graph :: #{id() => list()},
-  x_graph :: #{id() => list()},
-  way_data :: #{id() => #{}}
-}).
-
 
 %%%-------------------------------------------------------------------
 %%% API functions
@@ -192,14 +181,15 @@ build_graphs(Ways) ->
 %%%-------------------------------------------------------------------
 add_way(WayDescription, {Graph, TransposedGraph}) ->
     Nodes = maps:get(<<"nodes">>, WayDescription),
+    WayId = maps:get(<<"id">>, WayDescription),
     Node1 = hd(Nodes),
     Node2 = lists:last(Nodes),
-    Graph2 = update_node(Node1, Node2, Graph),
-    TransposedGraph2 = update_node(Node2, Node1, TransposedGraph),
+    Graph2 = update_node(Node1, Node2, Graph, WayId),
+    TransposedGraph2 = update_node(Node2, Node1, TransposedGraph, WayId),
     case is_oneway(WayDescription) of
         false ->
-            Graph3 = update_node(Node2, Node1, Graph2),
-            TransposedGraph3 = update_node(Node1, Node2, TransposedGraph2),
+            Graph3 = update_node(Node2, Node1, Graph2, WayId),
+            TransposedGraph3 = update_node(Node1, Node2, TransposedGraph2, WayId),
             {Graph3, TransposedGraph3};
         _ ->
             {Graph2, TransposedGraph2}
@@ -213,10 +203,11 @@ add_way(WayDescription, {Graph, TransposedGraph}) ->
 %%% Node2 is added to list of Node1's neighbours list in Graph.
 %%% @end
 %%%-------------------------------------------------------------------
-update_node(Node1, Node2, Graph) ->
-    Graph2 = maps:update_with(Node1, fun(Nodes) ->
-        [Node2 | Nodes]
-    end, [Node2], Graph),
+update_node(Node1, Node2, Graph, WayId) ->
+    Edge = #edge{way_id = WayId, node = Node2},
+    Graph2 = maps:update_with(Node1, fun(Edges) ->
+        [Edge | Edges]
+    end, [Edge], Graph),
     case maps:is_key(Node2, Graph2) of
         false ->
             Graph2#{Node2 => []};
@@ -246,9 +237,13 @@ filter_not_crossroad_vertices(Graph, TransposedGraph) ->
             maybe_delete_vertex_on_oneway_road(V, N1, AccIn, TAccIn);
         (V, [N1, N2], {AccIn, TAccIn}) ->
             maybe_delete_vertex_on_twoway_road(V, N1, N2, AccIn, TAccIn);
-        (_V, _Neighbours, AccIn) ->
-            AccIn
+        (V, _Neighbours, {AccIn, TAccIn}) ->
+            {to_vertices(V, AccIn), to_vertices(V, TAccIn)}
     end, {Graph, TransposedGraph}, Graph).
+
+to_vertices(V, Graph) ->
+    Neighbours = maps:get(V, Graph),
+    maps:put(V, [Node || #edge{node=Node} <- Neighbours], Graph).
 
 %%%-------------------------------------------------------------------
 %%% @private
@@ -262,7 +257,7 @@ maybe_delete_vertex_on_oneway_road(V, To, Graph, TransposedGraph) ->
             {delete_vertex_on_oneway_road(V, From, To, Graph),
                 delete_vertex_on_oneway_road(V, To, From, TransposedGraph)};
         _ ->
-            {Graph, TransposedGraph}
+            {to_vertices(V, Graph), to_vertices(V, TransposedGraph)}
     end.
 
 %%%-------------------------------------------------------------------
@@ -271,15 +266,25 @@ maybe_delete_vertex_on_oneway_road(V, To, Graph, TransposedGraph) ->
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
-delete_vertex_on_oneway_road(V, From, To, Graph) ->
-    Graph2 = maps:update_with(From, fun(Neighbours) ->
-        case lists:member(To, Neighbours) or (From == To) of
+delete_vertex_on_oneway_road(V, #edge{node=FromNode}, To = #edge{node = ToNode}, Graph) ->
+    Graph2 = maps:update_with(FromNode, fun(Neighbours) ->
+        case lists:member(To, Neighbours) or (FromNode == ToNode) of
             true ->
-                Neighbours -- [V];
+                lists:filter(fun
+                    (#edge{node=Node}) ->
+                        Node =/= V;
+                    (Node) ->
+                        Node =/= V
+                end, Neighbours);
             _ ->
-                [To | Neighbours] -- [V]
+                lists:filter(fun
+                    (#edge{node=Node}) ->
+                        Node =/= V;
+                    (Node) ->
+                        Node =/= V
+                end, [ToNode | Neighbours])
         end
-    end, [To], Graph),
+    end, [ToNode], Graph),
     maps:remove(V, Graph2).
 
 
@@ -297,7 +302,7 @@ maybe_delete_vertex_on_twoway_road(V, To1, To2, Graph, TransposedGraph) ->
             ->
                 delete_vertex_on_twoway_road(V, To1, To2, Graph, TransposedGraph);
         _ ->
-            {Graph, TransposedGraph}
+            {to_vertices(V, Graph), to_vertices(V, TransposedGraph)}
     end.
 
 %%%-------------------------------------------------------------------
