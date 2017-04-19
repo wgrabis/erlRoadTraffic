@@ -1,8 +1,5 @@
 %%%-------------------------------------------------------------------
 %%% @author Jakub Kudzia
-%%% @copyright (C) 2017 ACK CYFRONET AGH
-%%% This software is released under the MIT license
-%%% cited in 'LICENSE.txt'.
 %%% @doc
 %%% WRITEME
 %%% @end
@@ -115,13 +112,13 @@ build_roads([NodeEdge| Tail], CurrVisited, GraphData, XNode) ->
 %%%-------------------------------------------------------------------
 
 build_crossroads([], CurrVisited, _)->
-  {road_map#{roads = #{}, crossroads = #{}}, CurrVisited};
+  {#road_map{roads = #{}, crossroads = #{}}, CurrVisited};
 build_crossroads([Node | Tail], CurrVisited, GraphData) ->
   case sets:is_element(Node, CurrVisited) of
     false ->
       {NodeMap, NodeVisited} = walk_node_graph(CurrVisited, Node, GraphData),
       {TailMap, TailVisited} = build_crossroads(Tail, NodeVisited, GraphData),
-      {road_map#{roads = maps:merge(NodeMap#road_map.roads, TailMap#road_map.roads),
+      {#road_map{roads = maps:merge(NodeMap#road_map.roads, TailMap#road_map.roads),
           crossroads = maps:merge(NodeMap#road_map.crossroads, TailMap#road_map.crossroads)
         },
         TailVisited};
