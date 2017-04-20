@@ -55,6 +55,8 @@ initialize_road_map(GraphData) ->
 %%% @end
 %%%-------------------------------------------------------------------
 
+
+test
 walk_node_graph(InputVisited, Node, GraphData) ->
   Visited = sets:add_element(Node, InputVisited),
   {ChildrenRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
