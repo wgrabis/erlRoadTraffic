@@ -54,7 +54,7 @@ initialize_road_map(GraphData) ->
 %%% Builds adjacency list for each node.
 %%% @end
 %%%-------------------------------------------------------------------
-
+xx
 walk_node_graph(InputVisited, Node, GraphData) ->
   Visited = sets:add_element(Node, InputVisited),
   {ChildrenRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
