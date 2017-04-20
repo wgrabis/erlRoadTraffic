@@ -25,7 +25,8 @@
 
 -record(road, {
     id :: id(),
-    fractions = #{} :: #{id() => road_fraction()},
+    side_rising = #{} :: #{id() => road_fraction()},
+    side_falling = #{} :: #{id() => road_fraction()},
     begin_crossroad :: id(),
     end_crossroad :: id()
 }).

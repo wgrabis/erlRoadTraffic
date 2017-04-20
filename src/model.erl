@@ -59,13 +59,13 @@ walk_node_graph(InputVisited, Node, GraphData) ->
   Visited = sets:add_element(Node, InputVisited),
   {ChildrenRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
   RoadMap = #road_map{
-    roads = ChildrenRoads,
-    crossroads = #{Node => initialize_crossroad()}
+    roads = ChildrenRoads
+%%    crossroads = #{Node => initialize_crossroad(Node, GraphData)}
   },
   {ChildrenRoadMap, UpdatedVisited} = build_crossroads(maps:get(Node, GraphData#graphData.x_graph), ChildrenVisited, GraphData),
   UpdatedRoadMap = #road_map{
     roads = maps:merge(RoadMap#road_map.roads, ChildrenRoadMap#road_map.roads),
-    crossroads = maps:merge(RoadMap#road_map.crossroads, ChildrenRoadMap#road_map.crossroads)
+%%    crossroads = maps:merge(RoadMap#road_map.crossroads, ChildrenRoadMap#road_map.crossroads)
   },
   {UpdatedRoadMap, UpdatedVisited}.
 
@@ -117,45 +117,41 @@ build_crossroads([Node | Tail], CurrVisited, GraphData) ->
 .
 
 initialize_road(CurrVisited, GraphData, XNode, StartEdge) ->
-  {Fractions, UpdatedVisited} = build_fractions(CurrVisited, GraphData, XNode, StartEdge, 0),
+  {RisingFractions, UpdatedVisited, EndId, EndEdge, EndXNode}
+    = initialize_fractions_rising(CurrVisited, GraphData, XNode, StartEdge),
+  FallingFractions = initialize_fractions_falling(GraphData, EndXNode, EndEdge, XNode, EndId),
+
   Road = #road{
     id = StartEdge#edge.node,
     begin_crossroad = XNode,
-    fractions = Fractions
+    side_rising = RisingFractions,
+    side_falling = FallingFractions
   },
+
   {Road, UpdatedVisited}.
 
-build_fractions(CurrVisited, GraphData, PrevNode, CurrEdge, FractionNumber) ->
-  case maps:get(CurrEdge)
+initialize_crossroad(Node, GraphData) ->
+  CrossRoad = crossroad#{
+    id = Node,
+    cells = build_crossroad_cells()
+  }.
+
+build_crossroad_cells() ->
   .
 
-%%%-------------------------------------------------------------------
-%%% @doc
-%%% WRITEME
-%%% @end
-%%%-------------------------------------------------------------------
-
-initialize_road(Nodes, WayDescription, Ways)  ->
-    erlang:error(not_implemented).
 
 
+initialize_fractions_rising(CurrVisited, GraphData, PrevNode, CurrEdge) ->
+  case maps:is_key(CurrEdge#edge.node, GraphData#graphData.x_graph) of
+    true ->
+      initialize_fraction();
+    _ ->
+      maps:put()
+  end,
+  erlang:error(not_implemented).
 
-%%%-------------------------------------------------------------------
-%%% @private
-%%% @doc
-%%% Builds adjacency list for each node.
-%%% @end
-%%%-------------------------------------------------------------------
-initialize_crossroad(Node, GraphData) ->
-    erlang:error(not_implemented).
-
-%%%-------------------------------------------------------------------
-%%% @doc
-%%% WRITEME
-%%% @end
-%%%-------------------------------------------------------------------
-initialize_fraction(Nodes, WayDescription, Ways) ->
-    erlang:error(not_implemented).
+initialize_fractions_falling(GraphData, XNodeStart, StartEdge, NodeEnd, MaxId) ->
+  erlang:error(not_implemented).
 
 %%%-------------------------------------------------------------------
 %%% @private
