@@ -64,7 +64,7 @@ walk_node_graph(InputVisited, Node, GraphData) ->
   },
   {ChildrenRoadMap, UpdatedVisited} = build_crossroads(maps:get(Node, GraphData#graphData.x_graph), ChildrenVisited, GraphData),
   UpdatedRoadMap = #road_map{
-    roads = maps:merge(RoadMap#road_map.roads, ChildrenRoadMap#road_map.roads),
+    roads = maps:merge(RoadMap#road_map.roads, ChildrenRoadMap#road_map.roads)
 %%    crossroads = maps:merge(RoadMap#road_map.crossroads, ChildrenRoadMap#road_map.crossroads)
   },
   {UpdatedRoadMap, UpdatedVisited}.
@@ -117,9 +117,17 @@ build_crossroads([Node | Tail], CurrVisited, GraphData) ->
 .
 
 initialize_road(CurrVisited, GraphData, XNode, StartEdge) ->
-  {RisingFractions, UpdatedVisited, EndId, EndEdge, EndXNode}
-    = initialize_fractions_rising(CurrVisited, GraphData, XNode, StartEdge),
-  FallingFractions = initialize_fractions_falling(GraphData, EndXNode, EndEdge, XNode, EndId),
+  {RisingFractions, UpdatedVisited, EndId, EndEdge, LastNode}
+    = initialize_fractions_rising(CurrVisited, GraphData, XNode, StartEdge, 0),
+
+  OppositeEndEdge = get_opposite_edge(LastNode, maps:get(EndEdge#edge.node, GraphData#graphData.graph)),
+
+  case OppositeEndEdge of
+    empty ->
+      FallingFractions = #{};
+    _ ->
+      FallingFractions = initialize_fractions_falling(GraphData, EndEdge#edge.node, OppositeEndEdge, XNode, EndId)
+  end,
 
   Road = #road{
     id = StartEdge#edge.node,
@@ -130,28 +138,78 @@ initialize_road(CurrVisited, GraphData, XNode, StartEdge) ->
 
   {Road, UpdatedVisited}.
 
+get_opposite_edge(_, [])->
+  empty;
+
+get_opposite_edge(TargetNode, [Edge = #edge{node = TargetNode} | Tail]) ->
+  Edge;
+get_opposite_edge(TargetNode, [_ | Tail]) ->
+  get_opposite_edge(TargetNode, Tail).
+
+get_continuing_edge(_, []) ->
+  empty;
+
+get_continuing_edge(PrevNode, [#edge{node=PrevNode} | Tail])->
+  get_continuing_edge(PrevNode, Tail);
+
+get_continuing_edge(_, [Head | _]) ->
+  Head.
+
+initialize_fractions_rising(CurrVisited, GraphData, PrevNode, CurrEdge, CurrId) ->
+  case maps:is_key(CurrEdge#edge.node, GraphData#graphData.x_graph) of
+    true ->
+      {
+        #{CurrId => initialize_fraction()},
+        CurrVisited,
+        CurrId,
+        CurrEdge,
+        PrevNode
+      };
+    _ ->
+      UpdatedVisited = sets:add_element(CurrEdge#edge.node, CurrVisited),
+      CurrFraction = initialize_fraction(),
+
+      case get_continuing_edge(PrevNode, maps:get(CurrEdge#edge.node, GraphData#graphData.graph)) of
+        empty ->
+          {
+            #{CurrId => CurrFraction},
+            UpdatedVisited,
+            CurrId,
+            CurrEdge,
+            PrevNode
+          };
+        NextEdge ->
+          {ChildFractions, ChildVisited, MaxId, EndEdge, LastNode} =
+            initialize_fractions_rising(UpdatedVisited, GraphData, CurrEdge#edge.node, NextEdge, CurrId + 1),
+          {
+            maps:put(CurrId, CurrFraction, ChildFractions),
+            ChildVisited,
+            MaxId,
+            EndEdge,
+            LastNode
+          }
+      end
+  end.
+
+initialize_fractions_falling(GraphData, PrevNode, CurrEdge, XCrossEnd, CurrId) ->
+  case CurrEdge#edge.node of
+    XCrossEnd ->
+      #{CurrId => initialize_fraction()};
+    _ ->
+      CurrFraction = initalize_fraction(),
+      OppositeEdge = get_continuing_edge(PrevNode, maps:get(CurrEdge#edge.node, GraphData#graphData.graph)),
+
+      maps:put(CurrId, CurrFraction,
+        initialize_fractions_falling(GraphData, CurrEdge#edge.node, OppositeEdge, XCrossEnd, CurrId - 1)
+      )
+  end.
+
 initialize_crossroad(Node, GraphData) ->
   CrossRoad = crossroad#{
     id = Node,
     cells = build_crossroad_cells()
   }.
 
-build_crossroad_cells() ->
-  .
-
-
-
-initialize_fractions_rising(CurrVisited, GraphData, PrevNode, CurrEdge) ->
-  case maps:is_key(CurrEdge#edge.node, GraphData#graphData.x_graph) of
-    true ->
-      initialize_fraction();
-    _ ->
-      maps:put()
-  end,
-  erlang:error(not_implemented).
-
-initialize_fractions_falling(GraphData, XNodeStart, StartEdge, NodeEnd, MaxId) ->
-  erlang:error(not_implemented).
 
 %%%-------------------------------------------------------------------
 %%% @private
