@@ -41,7 +41,8 @@
 
 -record(lane, {
     id :: id(),
-    cells = #{} :: #{id() => cell()}
+    cells = #{} :: #{id() => cell()},
+    no_cells
 }).
 
 -record(cell, {

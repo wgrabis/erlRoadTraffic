@@ -19,6 +19,10 @@
 -include_lib("eunit/include/eunit.hrl").
 
 
+%% Constants
+-define(CAR_SIZE, 5).
+
+
 %%%-------------------------------------------------------------------
 %%% API functions
 %%%-------------------------------------------------------------------
@@ -221,7 +225,6 @@ count_edge_length(GraphData, BeginNodeId, EndNodeId) ->
   math:sqrt(math:pow(11.1132 * LatDiff, 2) + math:pow(7.8847 * LonDiff, 2))
   .
 
-
 initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
 
   {NoLanes, MaxSpeed} = get_edge_info(GraphData, Edge#edge.way_id),
@@ -235,9 +238,33 @@ initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
     lanes =  Lanes
   }.
 
-build_lanes(Length, NoLanes, CurrId) ->
-  erlang:error(not_implmented).
+build_lanes(_, NoLanes, _) when NoLanes == 0 ->
+  #{};
 
+build_lanes(Length, NoLanes, CurrId) ->
+  Lane = initialize_lane(Length, CurrId),
+  maps:put(CurrId, Lane, build_lanes(Length, NoLanes - 1, CurrId + 1)).
+
+initialize_lane(Length, CurrId) ->
+  {Cells, NoCells} = build_cells(Length, 0),
+  #lane{
+    id = CurrId,
+    cells = Cells,
+    no_cells = NoCells + 1
+  }.
+
+build_cells(Length, CurrId) when Length =< ?CAR_SIZE ->
+  {#{CurrId => #cell{
+    id = CurrId
+  }}, CurrId};
+
+build_cells(Length, CurrId) ->
+  {ChildCells, MaxCellId} = build_cells(Length - ?CAR_SIZE, CurrId + 1),
+
+  {maps:put(CurrId,
+    #cell{id = CurrId},
+    ChildCells
+  ), MaxCellId}.
 
 
 initialize_crossroad(Node, GraphData) ->
