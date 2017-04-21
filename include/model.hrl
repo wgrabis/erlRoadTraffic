@@ -28,13 +28,15 @@
     side_rising = #{} :: #{id() => road_fraction()},
     side_falling = #{} :: #{id() => road_fraction()},
     begin_crossroad :: id(),
-    end_crossroad :: id()
+    end_crossroad :: id(),
+    no_fractions
 }).
 
 -record(road_fraction, {
     id :: id(),
     velocity_limit :: non_neg_integer(),
-    lanes = #{} :: #{id() => lane()}
+    lanes = #{} :: #{id() => lane()},
+    no_lanes :: integer()
 }).
 
 -record(lane, {
@@ -60,7 +62,8 @@
 -record(graphData, {
     graph :: #{id() => list()},
     x_graph :: #{id() => list()},
-    way_data :: #{id() => #{}}
+    way_data :: #{id() => #{}},
+    node_data :: #{id() => #{}}
 }).
 
 

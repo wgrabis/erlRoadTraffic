@@ -56,7 +56,6 @@ initialize_road_map(GraphData) ->
 %%%-------------------------------------------------------------------
 
 
-test
 walk_node_graph(InputVisited, Node, GraphData) ->
   Visited = sets:add_element(Node, InputVisited),
   {ChildrenRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
@@ -135,7 +134,8 @@ initialize_road(CurrVisited, GraphData, XNode, StartEdge) ->
     id = StartEdge#edge.node,
     begin_crossroad = XNode,
     side_rising = RisingFractions,
-    side_falling = FallingFractions
+    side_falling = FallingFractions,
+    no_fractions = EndId + 1
   },
 
   {Road, UpdatedVisited}.
@@ -161,7 +161,7 @@ initialize_fractions_rising(CurrVisited, GraphData, PrevNode, CurrEdge, CurrId) 
   case maps:is_key(CurrEdge#edge.node, GraphData#graphData.x_graph) of
     true ->
       {
-        #{CurrId => initialize_fraction()},
+        #{CurrId => initialize_fraction(GraphData, PrevNode, CurrEdge, CurrId)},
         CurrVisited,
         CurrId,
         CurrEdge,
@@ -169,7 +169,7 @@ initialize_fractions_rising(CurrVisited, GraphData, PrevNode, CurrEdge, CurrId) 
       };
     _ ->
       UpdatedVisited = sets:add_element(CurrEdge#edge.node, CurrVisited),
-      CurrFraction = initialize_fraction(),
+      CurrFraction = initialize_fraction(GraphData, PrevNode, CurrEdge, CurrId),
 
       case get_continuing_edge(PrevNode, maps:get(CurrEdge#edge.node, GraphData#graphData.graph)) of
         empty ->
@@ -196,9 +196,9 @@ initialize_fractions_rising(CurrVisited, GraphData, PrevNode, CurrEdge, CurrId) 
 initialize_fractions_falling(GraphData, PrevNode, CurrEdge, XCrossEnd, CurrId) ->
   case CurrEdge#edge.node of
     XCrossEnd ->
-      #{CurrId => initialize_fraction()};
+      #{CurrId => initialize_fraction(GraphData, PrevNode, CurrEdge, CurrId)};
     _ ->
-      CurrFraction = initalize_fraction(),
+      CurrFraction = initialize_fraction(GraphData, PrevNode, CurrEdge, CurrId),
       OppositeEdge = get_continuing_edge(PrevNode, maps:get(CurrEdge#edge.node, GraphData#graphData.graph)),
 
       maps:put(CurrId, CurrFraction,
@@ -206,12 +206,49 @@ initialize_fractions_falling(GraphData, PrevNode, CurrEdge, XCrossEnd, CurrId) -
       )
   end.
 
+get_edge_info(GraphData, WayId) ->
+  Tags = maps:get("tags", maps:get(WayId, GraphData#graphData.way_data)),
+  {
+    maps:get("lanes", Tags, 1),
+    maps:get("maxspeed", Tags, 50)
+  }.
+
+count_edge_length(GraphData, BeginNodeId, EndNodeId) ->
+  BeginNode = maps:get(EndNodeId, GraphData#graphData.node_data),
+  EndNode = maps:get(BeginNodeId, GraphData#graphData.node_data),
+  LatDiff = abs(maps:get("lat", BeginNode) * 10000 - maps:get("lat", EndNode) * 10000),
+  LonDiff = abs(maps:get("lon", BeginNode) * 10000 - maps:get("lon", EndNode) * 10000),
+  math:sqrt(math:pow(11.1132 * LatDiff, 2) + math:pow(7.8847 * LonDiff, 2))
+  .
+
+
+initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
+
+  {NoLanes, MaxSpeed} = get_edge_info(GraphData, Edge#edge.way_id),
+  WayLength = count_edge_length(GraphData, BeginNode, Edge#edge.node),
+  Lanes = build_lanes(WayLength, NoLanes, 0),
+
+  #road_fraction{
+    id = FractionId,
+    no_lanes = NoLanes,
+    velocity_limit = MaxSpeed,
+    lanes =  Lanes
+  }.
+
+build_lanes(Length, NoLanes, CurrId) ->
+  erlang:error(not_implmented).
+
+
+
 initialize_crossroad(Node, GraphData) ->
-  CrossRoad = crossroad#{
+  CrossRoad = #crossroad{
     id = Node,
     cells = build_crossroad_cells()
   }.
 
+
+build_crossroad_cells() ->
+  erlang:error(not_implemented).
 
 %%%-------------------------------------------------------------------
 %%% @private
