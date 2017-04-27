@@ -21,6 +21,7 @@
 
 %% Constants
 -define(CAR_SIZE, 5).
+-define(DEAD_END, none_xroad).
 
 
 %%%-------------------------------------------------------------------
@@ -134,9 +135,17 @@ initialize_road(CurrVisited, GraphData, XNode, StartEdge) ->
       FallingFractions = initialize_fractions_falling(GraphData, EndEdge#edge.node, OppositeEndEdge, XNode, EndId)
   end,
 
+  case maps:is_key(EndEdge#edge.node, GraphData#graphData.x_graph) of
+    true ->
+      EndXNode = EndEdge#edge.node;
+    _ ->
+      EndXNode = ?DEAD_END
+  end,
+
   Road = #road{
     id = StartEdge#edge.node,
     begin_crossroad = XNode,
+    end_crossroad = EndXNode,
     side_rising = RisingFractions,
     side_falling = FallingFractions,
     no_fractions = EndId + 1
@@ -266,11 +275,88 @@ build_cells(Length, CurrId) ->
     ChildCells
   ), MaxCellId}.
 
+walk_update_crossroads(XNode, GraphData, RoadMap, Visited) ->
+  UpdatedVisited = sets:add_element(XNode, Visited),
+  AdjacentRoads = get_adjacent_roads(
+    maps:get(XNode, GraphData#graphData.graph),
+    GraphData, RoadMap, XNode),
+  SortedRoads = sort_adjacent_roads(XNode, GraphData, AdjacentRoads),
+  {ChildCrossroads, ChildVisited} = walk_crossroads(
+    maps:get(XNode, GraphData#graphData.graph),
+    GraphData, RoadMap, UpdatedVisited
+  ),
+  Crossroad = initialize_crossroad(XNode, GraphData, SortedRoads, RoadMap),
+  {maps:put(XNode, Crossroad, ChildCrossroads), ChildVisited}.
 
-initialize_crossroad(Node, GraphData) ->
-  CrossRoad = #crossroad{
+walk_crossroads([], GraphData, RoadMap, Visited) ->
+  #{};
+walk_crossroads([Node | Tail], GraphData, RoadMap, Visited) ->
+  case sets:is_element(Node, Visited) of
+    false ->
+      {NodeCrossroads, NodeVisited} = walk_update_crossroads(Node, GraphData, RoadMap, Visited),
+      {TailCrossroads, TailVisited} = walk_crossroads(Tail, GraphData, RoadMap, NodeVisited),
+      {maps:merge(NodeCrossroads, TailCrossroads), TailVisited};
+    _ ->
+      walk_crossroads(Tail, GraphData, RoadMap, Visited)
+  end.
+
+
+get_adjacent_roads([], _, _, _) ->
+  #{};
+
+get_adjacent_roads([Edge | Tail], GraphData, RoadMap, XNode) ->
+  Node = Edge#edge.node,
+  maps:put(Node, get_road_id(Node, XNode, RoadMap, GraphData),
+    get_adjacent_roads(Tail, GraphData, RoadMap, XNode)).
+
+
+get_road_id(Node, PrevNode, RoadMap, GraphData) ->
+  case maps:is_key(Node, RoadMap#road_map.roads) of
+    true ->
+      Node;
+    _ ->
+      ContinuingEdge = get_continuing_edge(PrevNode, maps:get(Node, GraphData#graphData.graph)),
+      get_road_id(
+        ContinuingEdge#edge.node,
+        Node, RoadMap, GraphData
+      )
+  end.
+
+
+generate_angle_map([], _, _, _) ->
+  #{};
+
+generate_angle_map([Node | Tail], NodeToRoadMap, XNode, GraphData) ->
+  {X1, Y1} = {
+    maps:get("lat", maps:get(Node, GraphData#graphData.node_data)),
+    maps:get("lon", maps:get(Node, GraphData#graphData.node_data))
+  },
+  {X2, Y2} = {
+    maps:get("lat", maps:get(XNode, GraphData#graphData.node_data)),
+    maps:get("lon", maps:get(XNode, GraphData#graphData.node_data))
+  },
+  Angle = math:atan2(Y1 - Y2, X1 - X2),
+  maps:put(maps:get(Node, NodeToRoadMap), Angle,
+    generate_angle_map(Tail, NodeToRoadMap, XNode, GraphData)).
+
+
+
+sort_adjacent_roads(XNode, GraphData, AdjacentRoads) ->
+  generate_angle_map(maps:get(XNode, GraphData#graphData.x_graph),
+    AdjacentRoads, XNode, GraphData).
+
+build_sorted_roads([], _) ->
+  #{};
+
+build_sorted_roads([Road | Tail], Id) ->
+  maps:put(Id, Road, build_sorted_roads(Tail, Id + 1)).
+
+
+initialize_crossroad(Node, GraphData, SortedRoads, RoadMap) ->
+  #crossroad{
     id = Node,
-    cells = build_crossroad_cells()
+    cells = build_crossroad_cells(),
+    roads = build_sorted_roads(SortedRoads, 0)
   }.
 
 
