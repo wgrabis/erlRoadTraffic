@@ -29,7 +29,7 @@
     side_falling = #{} :: #{id() => road_fraction()},
     begin_crossroad :: id(),
     end_crossroad :: id(),
-    no_fractions
+    no_fractions :: integer()
 }).
 
 -record(road_fraction, {
@@ -42,7 +42,9 @@
 -record(lane, {
     id :: id(),
     cells = #{} :: #{id() => cell()},
-    no_cells
+    no_cells :: integer(),
+    length :: integer(),
+    wide :: integer()
 }).
 
 -record(cell, {
