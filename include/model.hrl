@@ -21,7 +21,7 @@
     cells = #{} :: #{id() => cell()},
     roads = #{} :: #{id() => id()},
     length :: integer(),
-    wide :: integer()
+    width :: integer()
 
 }).
 

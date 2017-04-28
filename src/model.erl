@@ -21,7 +21,11 @@
 
 %% Constants
 -define(CAR_SIZE, 5).
+-define(LAT_LENGTH, 11.1132).
+-define(LON_LENGTH, 7.8847).
+-define(DEFAULT_MAXSPEED, "50").
 -define(DEAD_END, none_xroad).
+-define(DEAD_END_CROSSROAD_SIZE, 1).
 
 
 %%%-------------------------------------------------------------------
@@ -269,7 +273,7 @@ get_edge_info(GraphData, WayId) ->
   Tags = maps:get(<<"tags">>, maps:get(WayId, GraphData#graphData.way_data)),
   {
     binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>)),
-    binary_to_integer(maps:get(<<"maxspeed">>, Tags, <<"50">>))
+    binary_to_integer(maps:get(<<"maxspeed">>, Tags, <<?DEFAULT_MAXSPEED>>))
   }.
 
 count_edge_length(GraphData, BeginNodeId, EndNodeId) ->
@@ -277,7 +281,7 @@ count_edge_length(GraphData, BeginNodeId, EndNodeId) ->
   EndNode = maps:get(BeginNodeId, GraphData#graphData.node_data),
   LatDiff = abs(maps:get(<<"lat">>, BeginNode) * 10000 - maps:get(<<"lat">>, EndNode) * 10000),
   LonDiff = abs(maps:get(<<"lon">>, BeginNode) * 10000 - maps:get(<<"lon">>, EndNode) * 10000),
-  math:sqrt(math:pow(11.1132 * LatDiff, 2) + math:pow(7.8847 * LonDiff, 2))
+  math:sqrt(math:pow(?LAT_LENGTH * LatDiff, 2) + math:pow(?LON_LENGTH * LonDiff, 2))
   .
 
 initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
@@ -332,7 +336,7 @@ walk_update_crossroads(XNode, GraphData, RoadMap, Visited) ->
     maps:get(XNode, GraphData#graphData.x_graph),
     GraphData, RoadMap, UpdatedVisited
   ),
-  Crossroad = initialize_crossroad(XNode, GraphData, SortedRoads, RoadMap),
+  Crossroad = initialize_crossroad(XNode, SortedRoads, RoadMap),
   {maps:put(XNode, Crossroad, ChildCrossroads), ChildVisited}.
 
 walk_crossroads([], _, _, Visited) ->
@@ -404,17 +408,68 @@ sort_angle_roads(AngleRoadMap) ->
   SortedAngles = lists:sort(maps:keys(AngleRoadMap)),
   [ maps:get(K, AngleRoadMap) || K <- SortedAngles].
 
+count_connected_size(RoadId, RoadMap) ->
+  Road = maps:get(RoadId, RoadMap#road_map.roads),
+  FractionRising = maps:get(0, Road#road.side_rising),
+  FractionFalling = maps:get(Road#road.no_fractions - 1, Road#road.side_falling, #road_fraction{
+    no_lanes = 0
+  }),
 
-initialize_crossroad(Node, GraphData, SortedRoads, RoadMap) ->
+  FractionRising#road_fraction.no_lanes
+    + FractionFalling#road_fraction.no_lanes.
+
+
+build_crossroad_size(SortedRoads, RoadMap, NoRoads) ->
+  case NoRoads of
+    4 ->
+      [Road1, Road2, Road3, Road4 | _] = SortedRoads,
+      {
+        max(count_connected_size(Road1, RoadMap), count_connected_size(Road3, RoadMap)),
+        max(count_connected_size(Road2, RoadMap), count_connected_size(Road4, RoadMap))
+      };
+    3 ->
+      [Road1, Road2, Road3 | _] = SortedRoads,
+      {
+        max(count_connected_size(Road1, RoadMap), count_connected_size(Road3, RoadMap)),
+        count_connected_size(Road2, RoadMap)
+      };
+    1 ->
+      [Road1 | _] = SortedRoads,
+      {
+        count_connected_size(Road1, RoadMap),
+        ?DEAD_END_CROSSROAD_SIZE
+      };
+    _ ->
+      {
+        ?DEAD_END_CROSSROAD_SIZE,
+        ?DEAD_END_CROSSROAD_SIZE
+      }
+  end.
+
+
+
+initialize_crossroad(Node, SortedRoads, RoadMap) ->
+  NoRoads = length(SortedRoads),
+  {Width, Length} = build_crossroad_size(SortedRoads, RoadMap, NoRoads),
+  Cells = build_crossroad_cells(Length, Width),
   #crossroad{
     id = Node,
-    cells = build_crossroad_cells(),
-    roads = build_sorted_roads(SortedRoads, 0)
+    cells = Cells,
+    roads = build_sorted_roads(SortedRoads, 0),
+    length = Length,
+    width = Width
   }.
 
+build_no_cells(0, _) ->
+  #{};
 
-build_crossroad_cells() ->
-  #{}.
+build_no_cells(NoCells, CurrId) ->
+  maps:put(CurrId, #cell{
+    id = CurrId
+  }, build_no_cells(NoCells - 1, CurrId + 1)).
+
+build_crossroad_cells(Length, Width) ->
+  build_no_cells(Width * Length, 0).
 
 %%%-------------------------------------------------------------------
 %%% @private

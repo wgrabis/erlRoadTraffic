@@ -1,0 +1,369 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "osm3s": {
+    "timestamp_osm_base": "2017-04-27T09:52:09Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+    {
+      "type": "way",
+      "id": 24193276,
+      "nodes": [
+        206350619,
+        3686803409,
+        1470371070,
+        206350618,
+        1470371135,
+        2480489000
+      ],
+      "tags": {
+        "dual_carriageway": "yes",
+        "highway": "tertiary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "50",
+        "name": "Piastowska",
+        "oneway": "yes",
+        "ref": "2262K",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 24193282,
+      "nodes": [
+        262007334,
+        262007340,
+        1447910852,
+        262007348
+      ],
+      "tags": {
+        "dual_carriageway": "yes",
+        "foot": "no",
+        "highway": "tertiary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Piastowska",
+        "oneway": "yes",
+        "ref": "2262K",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt",
+        "turn:lanes": "left;through|through;right"
+      }
+    },
+    {
+      "type": "way",
+      "id": 206880033,
+      "nodes": [
+        2480489000,
+        2480489003,
+        1470370977
+      ],
+      "tags": {
+        "dual_carriageway": "yes",
+        "highway": "secondary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Armii Krajowej",
+        "oneway": "yes",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 206880045,
+      "nodes": [
+        262007348,
+        1447569601,
+        206348696,
+        1447569599,
+        2462085306,
+        236164878
+      ],
+      "tags": {
+        "dual_carriageway": "yes",
+        "highway": "secondary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Nawojki",
+        "oneway": "yes",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt",
+        "turn:lanes": "|merge_to_left"
+      }
+    },
+    {
+      "type": "way",
+      "id": 206880049,
+      "nodes": [
+        262007348,
+        262007350,
+        1470371119,
+        262007342,
+        206350619
+      ],
+      "tags": {
+        "dual_carriageway": "yes",
+        "highway": "tertiary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "50",
+        "name": "Piastowska",
+        "oneway": "yes",
+        "ref": "2262K",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 206880051,
+      "nodes": [
+        2480489000,
+        206348695,
+        1447910854,
+        262007336,
+        1325756418,
+        262007334
+      ],
+      "tags": {
+        "dual_carriageway": "yes",
+        "foot": "no",
+        "highway": "tertiary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Piastowska",
+        "oneway": "yes",
+        "ref": "2262K",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 277424366,
+      "nodes": [
+        236164386,
+        1447569602,
+        262007350,
+        2480489000
+      ],
+      "tags": {
+        "dual_carriageway": "yes",
+        "highway": "secondary",
+        "lanes": "3",
+        "lit": "yes",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Nawojki",
+        "oneway": "yes",
+        "smoothness": "bad",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt",
+        "turn:lanes": "left|through|through;right"
+      }
+    },
+    {
+      "type": "way",
+      "id": 277424369,
+      "nodes": [
+        1325756433,
+        1447910860,
+        206348695,
+        262007348
+      ],
+      "tags": {
+        "dual_carriageway": "yes",
+        "highway": "secondary",
+        "lanes": "3",
+        "lit": "yes",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Armii Krajowej",
+        "oneway": "yes",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt",
+        "turn:lanes": "left|through|through;right"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1325756433,
+      "lat": 50.0701827,
+      "lon": 19.9027125
+    },
+    {
+      "type": "node",
+      "id": 1470370977,
+      "lat": 50.0703893,
+      "lon": 19.9020092
+    },
+    {
+      "type": "node",
+      "id": 206348695,
+      "lat": 50.0700052,
+      "lon": 19.9038979
+    },
+    {
+      "type": "node",
+      "id": 206348696,
+      "lat": 50.0699223,
+      "lon": 19.9044654
+    },
+    {
+      "type": "node",
+      "id": 206350618,
+      "lat": 50.0704140,
+      "lon": 19.9040929
+    },
+    {
+      "type": "node",
+      "id": 206350619,
+      "lat": 50.0709283,
+      "lon": 19.9044049
+    },
+    {
+      "type": "node",
+      "id": 236164386,
+      "lat": 50.0699477,
+      "lon": 19.9049484
+    },
+    {
+      "type": "node",
+      "id": 236164878,
+      "lat": 50.0698203,
+      "lon": 19.9055822
+    },
+    {
+      "type": "node",
+      "id": 262007334,
+      "lat": 50.0690378,
+      "lon": 19.9035798
+    },
+    {
+      "type": "node",
+      "id": 262007336,
+      "lat": 50.0694817,
+      "lon": 19.9036783
+    },
+    {
+      "type": "node",
+      "id": 262007340,
+      "lat": 50.0694866,
+      "lon": 19.9037967
+    },
+    {
+      "type": "node",
+      "id": 262007342,
+      "lat": 50.0703679,
+      "lon": 19.9041828
+    },
+    {
+      "type": "node",
+      "id": 262007348,
+      "lat": 50.0699868,
+      "lon": 19.9040215
+    },
+    {
+      "type": "node",
+      "id": 262007350,
+      "lat": 50.0700975,
+      "lon": 19.9040776
+    },
+    {
+      "type": "node",
+      "id": 1325756418,
+      "lat": 50.0692313,
+      "lon": 19.9035962
+    },
+    {
+      "type": "node",
+      "id": 1447569599,
+      "lat": 50.0698603,
+      "lon": 19.9049546
+    },
+    {
+      "type": "node",
+      "id": 1447569601,
+      "lat": 50.0699605,
+      "lon": 19.9042023
+    },
+    {
+      "type": "node",
+      "id": 1447569602,
+      "lat": 50.0700668,
+      "lon": 19.9042466
+    },
+    {
+      "type": "node",
+      "id": 1447910852,
+      "lat": 50.0698630,
+      "lon": 19.9039658
+    },
+    {
+      "type": "node",
+      "id": 1447910854,
+      "lat": 50.0698839,
+      "lon": 19.9038585
+    },
+    {
+      "type": "node",
+      "id": 1447910860,
+      "lat": 50.0700294,
+      "lon": 19.9037261
+    },
+    {
+      "type": "node",
+      "id": 1470371070,
+      "lat": 50.0706694,
+      "lon": 19.9042209
+    },
+    {
+      "type": "node",
+      "id": 1470371119,
+      "lat": 50.0702178,
+      "lon": 19.9041244
+    },
+    {
+      "type": "node",
+      "id": 1470371135,
+      "lat": 50.0702368,
+      "lon": 19.9039990
+    },
+    {
+      "type": "node",
+      "id": 2462085306,
+      "lat": 50.0698486,
+      "lon": 19.9051819
+    },
+    {
+      "type": "node",
+      "id": 2480489000,
+      "lat": 50.0701177,
+      "lon": 19.9039496
+    },
+    {
+      "type": "node",
+      "id": 2480489003,
+      "lat": 50.0701446,
+      "lon": 19.9037740
+    },
+    {
+      "type": "node",
+      "id": 3686803409,
+      "lat": 50.0707840,
+      "lon": 19.9043024
+    }
+
+  ]
+}
