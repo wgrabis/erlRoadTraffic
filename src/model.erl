@@ -384,7 +384,7 @@ generate_angle_map([Edge | Tail], NodeToRoadMap, XNode, GraphData) ->
     10000 * maps:get(<<"lon">>, maps:get(XNode, GraphData#graphData.node_data))
   },
   Angle = math:atan2(Y1 - Y2, X1 - X2),
-  maps:put(maps:get(Node, NodeToRoadMap), Angle,
+  maps:put(Angle, maps:get(Node, NodeToRoadMap),
     generate_angle_map(Tail, NodeToRoadMap, XNode, GraphData)).
 
 

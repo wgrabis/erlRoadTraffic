@@ -19,7 +19,9 @@
 -record(crossroad, {
     id :: id(),
     cells = #{} :: #{id() => cell()},
-    roads = #{} :: #{id() => id()}
+    roads = #{} :: #{id() => id()},
+    length :: integer(),
+    wide :: integer()
 
 }).
 
@@ -42,9 +44,7 @@
 -record(lane, {
     id :: id(),
     cells = #{} :: #{id() => cell()},
-    no_cells :: integer(),
-    length :: integer(),
-    wide :: integer()
+    no_cells :: integer()
 }).
 
 -record(cell, {
