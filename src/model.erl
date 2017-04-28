@@ -330,8 +330,11 @@ walk_update_crossroads(XNode, GraphData, RoadMap, Visited) ->
   AdjacentRoads = get_adjacent_roads(
     maps:get(XNode, GraphData#graphData.graph),
     GraphData, RoadMap, XNode),
+  io:fwrite("~w~w~w~n",[XNode, AdjacentRoads, maps:get(XNode, GraphData#graphData.graph)]),
   AngleRoadMap = sort_adjacent_roads(XNode, GraphData, AdjacentRoads),
+  io:fwrite("~w~w~n",[XNode, AngleRoadMap]),
   SortedRoads = sort_angle_roads(AngleRoadMap),
+  io:fwrite("~w~w~n",[XNode, SortedRoads]),
   {ChildCrossroads, ChildVisited} = walk_crossroads(
     maps:get(XNode, GraphData#graphData.x_graph),
     GraphData, RoadMap, UpdatedVisited
@@ -352,13 +355,22 @@ walk_crossroads([Node | Tail], GraphData, RoadMap, Visited) ->
   end.
 
 
-get_adjacent_roads([], _, _, _) ->
+get_adjacent_roads([], _, RoadMap, XNode) ->
   #{};
 
 get_adjacent_roads([Edge | Tail], GraphData, RoadMap, XNode) ->
   Node = Edge#edge.node,
-  maps:put(Node, get_road_id(Node, XNode, RoadMap, GraphData),
-    get_adjacent_roads(Tail, GraphData, RoadMap, XNode)).
+  RoadId = get_road_id(Node, XNode, RoadMap, GraphData),
+  io:fwrite("~w~w~n",[XNode, RoadId]),
+  case RoadId of
+    own_id ->
+      maps:put(Node, XNode,
+        get_adjacent_roads(Tail, GraphData, RoadMap, XNode));
+    _ ->
+      maps:put(Node, RoadId,
+        get_adjacent_roads(Tail, GraphData, RoadMap, XNode))
+  end.
+
 
 
 get_road_id(Node, PrevNode, RoadMap, GraphData) ->
@@ -366,11 +378,16 @@ get_road_id(Node, PrevNode, RoadMap, GraphData) ->
     true ->
       Node;
     _ ->
-      ContinuingEdge = get_continuing_edge(PrevNode, maps:get(Node, GraphData#graphData.graph)),
-      get_road_id(
-        ContinuingEdge#edge.node,
-        Node, RoadMap, GraphData
-      )
+      case maps:is_key(Node, GraphData#graphData.x_graph) of
+        true ->
+          own_id;
+        _ ->
+          ContinuingEdge = get_continuing_edge(PrevNode, maps:get(Node, GraphData#graphData.graph)),
+          get_road_id(
+            ContinuingEdge#edge.node,
+            Node, RoadMap, GraphData
+          )
+      end
   end.
 
 
@@ -439,11 +456,13 @@ build_crossroad_size(SortedRoads, RoadMap, NoRoads) ->
         count_connected_size(Road1, RoadMap),
         ?DEAD_END_CROSSROAD_SIZE
       };
-    _ ->
+    0 ->
       {
         ?DEAD_END_CROSSROAD_SIZE,
         ?DEAD_END_CROSSROAD_SIZE
-      }
+      };
+    _ ->
+      erlang:error([bad_road_size])
   end.
 
 
