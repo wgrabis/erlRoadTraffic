@@ -66,7 +66,8 @@
     graph :: #{id() => list()},
     x_graph :: #{id() => list()},
     way_data :: #{id() => #{}},
-    node_data :: #{id() => #{}}
+    node_data :: #{id() => #{}},
+    transposed_graph :: #{id() => #{}}
 }).
 
 
