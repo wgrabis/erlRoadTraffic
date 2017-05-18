@@ -44,12 +44,12 @@
     cells = #{} :: #{id() => cell()},
     no_cells :: integer(),
     length :: integer(),
-    wide :: integer()
+    width :: integer()
 }).
 
 -record(cell, {
     id :: id(),
-    car :: car()
+    car :: car() | undefined
 }).
 
 -record(car, {

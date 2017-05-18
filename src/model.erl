@@ -8,6 +8,7 @@
 -author({"Jakub Kudzia", "Wojciech Grabis"}).
 
 -include("model.hrl").
+-include("constants.hrl").
 
 %% API
 -export([initialize/2]).
@@ -19,9 +20,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 
-%% Constants
--define(CAR_SIZE, 5).
--define(DEAD_END, none_xroad).
 
 
 %%%-------------------------------------------------------------------
@@ -268,8 +266,8 @@ initialize_fractions_falling(GraphData, PrevNode, CurrEdge, XCrossEnd, CurrId) -
 get_edge_info(GraphData, WayId) ->
   Tags = maps:get(<<"tags">>, maps:get(WayId, GraphData#graphData.way_data)),
   {
-    binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>)),
-    binary_to_integer(maps:get(<<"maxspeed">>, Tags, <<"50">>))
+    maps:get(<<"lanes">>, Tags, ?DEFAULT_LANES_NUM),
+    maps:get(<<"maxspeed">>, Tags, ?DEFAULT_SPEED_LIMIT)
   }.
 
 count_edge_length(GraphData, BeginNodeId, EndNodeId) ->
@@ -576,4 +574,3 @@ delete_vertex_on_twoway_road(V, To1, To2, Graph, TransposedGraph) ->
     G3 = delete_vertex_on_oneway_road(V, To2, To1, G2),
     T3 = delete_vertex_on_oneway_road(V, To1, To2, T2),
     {G3, T3}.
-
