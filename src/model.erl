@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author Jakub Kudzia
 %%% @doc
-%%% WRITEME
+%%% Module containing model building functions
 %%% @end
 %%%-------------------------------------------------------------------
 -module(model).
@@ -20,6 +20,18 @@
 -include_lib("eunit/include/eunit.hrl").
 
 
+%% Constants
+-define(CAR_SIZE, 5).
+-define(LAT_LENGTH, 11.1132).
+-define(LON_LENGTH, 7.8847).
+-define(DEFAULT_MAXSPEED, "50").
+-define(DEAD_END, none_xroad).
+-define(DEAD_END_CROSSROAD_SIZE, 1).
+-define(LEFT_RULE, 0).
+-define(STRAIGHT_RULE, 1).
+-define(RIGHT_RULE, 2).
+-define(MERGE_LEFT, 3).
+-define(MERGE_RIGHT, 4).
 
 
 %%%-------------------------------------------------------------------
@@ -38,7 +50,8 @@ initialize(_Nodes, Ways) ->
       node_data = _Nodes,
       way_data = Ways,
       graph = Graph,
-      x_graph = Graph2
+      x_graph = Graph2,
+      transposed_graph = TransposeGraph
     }).
 
 
@@ -53,13 +66,38 @@ initialize(_Nodes, Ways) ->
 %%% @end
 %%%-------------------------------------------------------------------
 initialize_road_map(GraphData) ->
-  FirstNode = hd(maps:keys(GraphData#graphData.x_graph)),
-  {RoadMap, _} = walk_node_graph(sets:new(), FirstNode, GraphData),
-  {Crossroads, _} = walk_update_crossroads(FirstNode, GraphData, RoadMap, sets:new()),
+  Roads = dfs_build_roads(maps:keys(GraphData#graphData.x_graph), GraphData, sets:new()),
+  Crossroads = dfs_build_crossroads(maps:keys(GraphData#graphData.x_graph), GraphData, #road_map{roads = Roads}, sets:new()),
   #road_map{
     crossroads = Crossroads,
-    roads = RoadMap#road_map.roads
+    roads = Roads
   }.
+
+dfs_build_roads([], _, _)->
+  #{};
+
+dfs_build_roads([Head | Tail], GraphData, Visited)->
+  case sets:is_element(Head, Visited) of
+    true ->
+      dfs_build_roads(Tail, GraphData, Visited);
+    _ ->
+      {Roads, UpdatedVisited} = walk_node_graph(Visited, Head, GraphData),
+      ChildRoads = dfs_build_roads(Tail, GraphData, UpdatedVisited),
+      maps:merge(Roads, ChildRoads)
+  end.
+
+dfs_build_crossroads([], _, _, _)->
+  #{};
+
+dfs_build_crossroads([Head | Tail], GraphData, RoadMap, Visited)->
+  case sets:is_element(Head, Visited) of
+    true ->
+      dfs_build_crossroads(Tail, GraphData, RoadMap, Visited);
+    _ ->
+      {Crossroads, UpdatedVisited} = walk_update_crossroads(Head, GraphData, RoadMap, Visited),
+      ChildCrossroads = dfs_build_crossroads(Tail, GraphData, RoadMap, UpdatedVisited),
+      maps:merge(Crossroads, ChildCrossroads)
+  end.
 
 %%%-------------------------------------------------------------------
 %%% @private
@@ -71,17 +109,9 @@ initialize_road_map(GraphData) ->
 
 walk_node_graph(InputVisited, Node, GraphData) ->
   Visited = sets:add_element(Node, InputVisited),
-  {ChildrenRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
-  RoadMap = #road_map{
-    roads = ChildrenRoads
-%%    crossroads = #{Node => initialize_crossroad(Node, GraphData)}
-  },
-  {ChildrenRoadMap, UpdatedVisited} = build_crossroads(maps:get(Node, GraphData#graphData.x_graph), ChildrenVisited, GraphData),
-  UpdatedRoadMap = #road_map{
-    roads = maps:merge(RoadMap#road_map.roads, ChildrenRoadMap#road_map.roads)
-%%    crossroads = maps:merge(RoadMap#road_map.crossroads, ChildrenRoadMap#road_map.crossroads)
-  },
-  {UpdatedRoadMap, UpdatedVisited}.
+  {NodeRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
+  {ChildrenRoads, UpdatedVisited} = build_crossroads(maps:get(Node, GraphData#graphData.x_graph), ChildrenVisited, GraphData),
+  {maps:merge(NodeRoads, ChildrenRoads), UpdatedVisited}.
 
 %%%-------------------------------------------------------------------
 %%% @private
@@ -90,6 +120,15 @@ walk_node_graph(InputVisited, Node, GraphData) ->
 %%% for list of neighbouring nodes of a crossroad
 %%% @end
 %%%-------------------------------------------------------------------
+
+contains_node_helper([], _) ->
+  false;
+
+contains_node_helper([#edge{node = Node} | _], Node) ->
+  true;
+
+contains_node_helper([_ | Tail], Node) ->
+  contains_node_helper(Tail, Node).
 
 build_roads([], CurrVisited, _, _) ->
   {#{}, CurrVisited};
@@ -100,8 +139,15 @@ build_roads([NodeEdge| Tail], CurrVisited, GraphData, XNode) ->
       {TailRoad, TailVisited} = build_roads(Tail, NodeVisited, GraphData, XNode),
       {maps:put(NodeEdge#edge.node, NodeRoad, TailRoad), TailVisited};
     _ ->
-      % insert end road info
-      build_roads(Tail, CurrVisited, GraphData, XNode)
+      case (maps:is_key(NodeEdge#edge.node, GraphData#graphData.x_graph)
+        and not contains_node_helper(maps:get(NodeEdge#edge.node, GraphData#graphData.x_graph, []), XNode)) of
+        true ->
+          {NodeRoad, NodeVisited} = initialize_road(CurrVisited, GraphData, XNode, NodeEdge),
+          {TailRoad, TailVisited} = build_roads(Tail, NodeVisited, GraphData, XNode),
+          {maps:put(NodeEdge#edge.node, NodeRoad, TailRoad), TailVisited};
+        false ->
+          build_roads(Tail, CurrVisited, GraphData, XNode)
+      end
   end.
 
 
@@ -114,15 +160,13 @@ build_roads([NodeEdge| Tail], CurrVisited, GraphData, XNode) ->
 %%% @end
 %%%-------------------------------------------------------------------
 build_crossroads([], CurrVisited, _)->
-  {#road_map{roads = #{}, crossroads = #{}}, CurrVisited};
+  {#{}, CurrVisited};
 build_crossroads([Node | Tail], CurrVisited, GraphData) ->
   case sets:is_element(Node, CurrVisited) of
     false ->
-      {NodeMap, NodeVisited} = walk_node_graph(CurrVisited, Node, GraphData),
-      {TailMap, TailVisited} = build_crossroads(Tail, NodeVisited, GraphData),
-      {#road_map{roads = maps:merge(NodeMap#road_map.roads, TailMap#road_map.roads),
-          crossroads = maps:merge(NodeMap#road_map.crossroads, TailMap#road_map.crossroads)
-        },
+      {NodeRoads, NodeVisited} = walk_node_graph(CurrVisited, Node, GraphData),
+      {TailRoads, TailVisited} = build_crossroads(Tail, NodeVisited, GraphData),
+      {maps:merge(NodeRoads, TailRoads),
         TailVisited};
     _ ->
       build_crossroads(Tail, CurrVisited, GraphData)
@@ -263,11 +307,85 @@ initialize_fractions_falling(GraphData, PrevNode, CurrEdge, XCrossEnd, CurrId) -
       )
   end.
 
-get_edge_info(GraphData, WayId) ->
-  Tags = maps:get(<<"tags">>, maps:get(WayId, GraphData#graphData.way_data)),
+
+check_orientation(Way, PrevNode, CurrNode) ->
+  Nodes = maps:get(<<"nodes">>, Way, []),
+  [NextNode | _] = lists:dropwhile(
+    fun (Elem) ->
+      case Elem of
+        PrevNode ->
+          true;
+        _ ->
+          false
+      end
+    end, Nodes),
+  case NextNode of
+    CurrNode ->
+      <<"forward">>;
+    _ ->
+      <<"backward">>
+  end.
+
+
+
+build_turn_info(BinaryTurnInfo) when BinaryTurnInfo == none->
+  none;
+
+build_turn_info(BinaryTurnInfo)->
+  TurnInfoList = re:split(BinaryTurnInfo, "\\|"),
+  {OutTurnInfo, _} = lists:foldl(fun
+                  (Record, {CurrMap, Index}) ->
+                    case Record of
+                      <<"">> ->
+                        {CurrMap, Index + 1};
+                      _ ->
+                        Turns = lists:foldl(fun
+                                              (CurrInfo, CurrList) ->
+                                                case CurrInfo of
+                                                  <<"left">> ->
+                                                    Turn = ?LEFT_RULE;
+                                                  <<"through">> ->
+                                                    Turn = ?STRAIGHT_RULE;
+                                                  <<"right">> ->
+                                                    Turn = ?RIGHT_RULE;
+                                                  <<"merge_to_left">> ->
+                                                    Turn = ?MERGE_LEFT;
+                                                  <<"merge_to_right">> ->
+                                                    Turn = ?MERGE_RIGHT
+                                                end,
+                                                CurrList ++ [Turn]
+                                            end, [],re:split(Record, ";")),
+                        {maps:put(Index, Turns, CurrMap), Index + 1}
+                    end
+                end, {#{}, 0}, TurnInfoList),
+  OutTurnInfo.
+
+
+get_edge_info(GraphData, WayId, PrevNode, CurrNode) ->
+  Way = maps:get(WayId, GraphData#graphData.way_data),
+  Orientation = check_orientation(Way, PrevNode, CurrNode),
+  Tags = maps:get(<<"tags">>, Way, #{}),
+  case maps:get(<<"lanes:", Orientation/binary>>, Tags, none) of
+    none ->
+      case maps:get(<<"oneway">>, Tags, <<"no">>) of
+        <<"no">> ->
+          Lanes = binary_to_integer(maps:get(<<"lanes">>, Tags, <<"2">>)) div 2;
+        <<"yes">> ->
+          Lanes = binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>))
+      end;
+    Value ->
+      Lanes = binary_to_integer(Value)
+  end,
+  case maps:get(<<"oneway">>, Tags, <<"no">>) of
+    <<"no">> ->
+      TurnInfo = build_turn_info(maps:get(<<"turn:lanes:", Orientation/binary>>, Tags, none));
+    <<"yes">> ->
+      TurnInfo = build_turn_info(maps:get(<<"turn:lanes:">>, Tags, none))
+  end,
   {
-    maps:get(<<"lanes">>, Tags, ?DEFAULT_LANES_NUM),
-    maps:get(<<"maxspeed">>, Tags, ?DEFAULT_SPEED_LIMIT)
+    Lanes,
+    TurnInfo,
+    binary_to_integer(maps:get(<<"maxspeed">>, Tags, <<?DEFAULT_MAXSPEED>>))
   }.
 
 count_edge_length(GraphData, BeginNodeId, EndNodeId) ->
@@ -275,12 +393,14 @@ count_edge_length(GraphData, BeginNodeId, EndNodeId) ->
   EndNode = maps:get(BeginNodeId, GraphData#graphData.node_data),
   LatDiff = abs(maps:get(<<"lat">>, BeginNode) * 10000 - maps:get(<<"lat">>, EndNode) * 10000),
   LonDiff = abs(maps:get(<<"lon">>, BeginNode) * 10000 - maps:get(<<"lon">>, EndNode) * 10000),
-  math:sqrt(math:pow(11.1132 * LatDiff, 2) + math:pow(7.8847 * LonDiff, 2))
+  math:sqrt(math:pow(?LAT_LENGTH * LatDiff, 2) + math:pow(?LON_LENGTH * LonDiff, 2))
   .
 
 initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
 
-  {NoLanes, MaxSpeed} = get_edge_info(GraphData, Edge#edge.way_id),
+  {NoLanes, TurnInfo, MaxSpeed} = get_edge_info(GraphData, Edge#edge.way_id,BeginNode, Edge#edge.node),
+  io:fwrite("~w~n", [NoLanes]),
+
   WayLength = count_edge_length(GraphData, BeginNode, Edge#edge.node),
   Lanes = build_lanes(WayLength, NoLanes, 0),
 
@@ -288,7 +408,8 @@ initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
     id = FractionId,
     no_lanes = NoLanes,
     velocity_limit = MaxSpeed,
-    lanes =  Lanes
+    lanes =  Lanes,
+    special_rules = TurnInfo
   }.
 
 build_lanes(_, NoLanes, _) when NoLanes == 0 ->
@@ -321,16 +442,11 @@ build_cells(Length, CurrId) ->
 
 walk_update_crossroads(XNode, GraphData, RoadMap, Visited) ->
   UpdatedVisited = sets:add_element(XNode, Visited),
-  AdjacentRoads = get_adjacent_roads(
-    maps:get(XNode, GraphData#graphData.graph),
-    GraphData, RoadMap, XNode),
-  AngleRoadMap = sort_adjacent_roads(XNode, GraphData, AdjacentRoads),
-  SortedRoads = sort_angle_roads(AngleRoadMap),
   {ChildCrossroads, ChildVisited} = walk_crossroads(
     maps:get(XNode, GraphData#graphData.x_graph),
     GraphData, RoadMap, UpdatedVisited
   ),
-  Crossroad = initialize_crossroad(XNode, GraphData, SortedRoads, RoadMap),
+  Crossroad = initialize_crossroad(XNode, RoadMap, GraphData),
   {maps:put(XNode, Crossroad, ChildCrossroads), ChildVisited}.
 
 walk_crossroads([], _, _, Visited) ->
@@ -351,20 +467,33 @@ get_adjacent_roads([], _, _, _) ->
 
 get_adjacent_roads([Edge | Tail], GraphData, RoadMap, XNode) ->
   Node = Edge#edge.node,
-  maps:put(Node, get_road_id(Node, XNode, RoadMap, GraphData),
-    get_adjacent_roads(Tail, GraphData, RoadMap, XNode)).
+  RoadId = get_road_id(Node, XNode, RoadMap, GraphData, GraphData#graphData.graph),
+  case RoadId of
+    own_id ->
+      maps:put(Node, XNode,
+        get_adjacent_roads(Tail, GraphData, RoadMap, XNode));
+    _ ->
+      maps:put(Node, RoadId,
+        get_adjacent_roads(Tail, GraphData, RoadMap, XNode))
+  end.
 
 
-get_road_id(Node, PrevNode, RoadMap, GraphData) ->
+
+get_road_id(Node, PrevNode, RoadMap, GraphData, CurrGraph) ->
   case maps:is_key(Node, RoadMap#road_map.roads) of
     true ->
       Node;
     _ ->
-      ContinuingEdge = get_continuing_edge(PrevNode, maps:get(Node, GraphData#graphData.graph)),
-      get_road_id(
-        ContinuingEdge#edge.node,
-        Node, RoadMap, GraphData
-      )
+      case maps:is_key(Node, GraphData#graphData.x_graph) of
+        true ->
+          own_id;
+        _ ->
+          ContinuingEdge = get_continuing_edge(PrevNode, maps:get(Node, CurrGraph)),
+          get_road_id(
+            ContinuingEdge#edge.node,
+            Node, RoadMap, GraphData, CurrGraph
+          )
+      end
   end.
 
 
@@ -382,13 +511,13 @@ generate_angle_map([Edge | Tail], NodeToRoadMap, XNode, GraphData) ->
     10000 * maps:get(<<"lon">>, maps:get(XNode, GraphData#graphData.node_data))
   },
   Angle = math:atan2(Y1 - Y2, X1 - X2),
-  maps:put(maps:get(Node, NodeToRoadMap), Angle,
+  maps:put(Angle, maps:get(Node, NodeToRoadMap),
     generate_angle_map(Tail, NodeToRoadMap, XNode, GraphData)).
 
 
 
-sort_adjacent_roads(XNode, GraphData, AdjacentRoads) ->
-  generate_angle_map(maps:get(XNode, GraphData#graphData.graph),
+sort_adjacent_roads(XNode, GraphData, AdjacentRoads, EdgeList) ->
+  generate_angle_map(EdgeList,
     AdjacentRoads, XNode, GraphData).
 
 build_sorted_roads([], _) ->
@@ -402,17 +531,107 @@ sort_angle_roads(AngleRoadMap) ->
   SortedAngles = lists:sort(maps:keys(AngleRoadMap)),
   [ maps:get(K, AngleRoadMap) || K <- SortedAngles].
 
+count_connected_size(RoadId, RoadMap) ->
+  Road = maps:get(RoadId, RoadMap#road_map.roads),
+  FractionRising = maps:get(0, Road#road.side_rising),
+  FractionFalling = maps:get(Road#road.no_fractions - 1, Road#road.side_falling, #road_fraction{
+    no_lanes = 0
+  }),
 
-initialize_crossroad(Node, GraphData, SortedRoads, RoadMap) ->
+  FractionRising#road_fraction.no_lanes
+    + FractionFalling#road_fraction.no_lanes.
+
+
+build_crossroad_size(SortedRoads, RoadMap, NoRoads) ->
+  case NoRoads of
+    4 ->
+      [Road1, Road2, Road3, Road4 | _] = SortedRoads,
+      {
+        max(count_connected_size(Road1, RoadMap), count_connected_size(Road3, RoadMap)),
+        max(count_connected_size(Road2, RoadMap), count_connected_size(Road4, RoadMap))
+      };
+    3 ->
+      [Road1, Road2, Road3 | _] = SortedRoads,
+      {
+        max(count_connected_size(Road1, RoadMap), count_connected_size(Road3, RoadMap)),
+        count_connected_size(Road2, RoadMap)
+      };
+    1 ->
+      [Road1 | _] = SortedRoads,
+      {
+        count_connected_size(Road1, RoadMap),
+        ?DEAD_END_CROSSROAD_SIZE
+      };
+    0 ->
+      {
+        ?DEAD_END_CROSSROAD_SIZE,
+        ?DEAD_END_CROSSROAD_SIZE
+      };
+    _ ->
+      erlang:error([bad_road_size])
+  end.
+
+
+get_incoming_adjacent_roads([], _, _, _) ->
+  #{};
+
+get_incoming_adjacent_roads([Edge | Tail], GraphData, RoadMap, XNode) ->
+  Node = Edge#edge.node,
+  RoadId = get_road_id(Node, XNode, RoadMap, GraphData, GraphData#graphData.transposed_graph),
+  case RoadId of
+    own_id ->
+      maps:put(Node, XNode,
+        get_incoming_adjacent_roads(Tail, GraphData, RoadMap, XNode));
+    _ ->
+      maps:put(Node, RoadId,
+        get_incoming_adjacent_roads(Tail, GraphData, RoadMap, XNode))
+  end.
+
+
+prepare_roads(XNode, RoadMap, GraphData) ->
+  AdjacentRoads = get_adjacent_roads(
+    maps:get(XNode, GraphData#graphData.graph),
+    GraphData, RoadMap, XNode),
+  AdjAngleRoadMap = sort_adjacent_roads(XNode, GraphData, AdjacentRoads, maps:get(XNode, GraphData#graphData.graph)),
+  AdjSortedRoads = sort_angle_roads(AdjAngleRoadMap),
+
+  TransposedRoads = get_incoming_adjacent_roads(
+    maps:get(XNode, GraphData#graphData.transposed_graph), GraphData, RoadMap, XNode),
+
+  UniqueRoads = maps:merge(AdjacentRoads, TransposedRoads),
+
+  AllConnectedEdges = sets:to_list(sets:from_list(
+    maps:get(XNode, GraphData#graphData.graph) ++ maps:get(XNode, GraphData#graphData.transposed_graph))),
+
+  AngleRoadMap = sort_adjacent_roads(XNode, GraphData, UniqueRoads, AllConnectedEdges),
+  SortedUniqueRoads = sort_angle_roads(AngleRoadMap),
+  {AdjSortedRoads, SortedUniqueRoads}.
+
+
+
+initialize_crossroad(Node, RoadMap, GraphData) ->
+  {SortedRoads, SortedUniqueRoads} = prepare_roads(Node, RoadMap, GraphData),
+
+  {Width, Length} = build_crossroad_size(SortedUniqueRoads, RoadMap, length(SortedUniqueRoads)),
+  Cells = build_crossroad_cells(Length, Width),
   #crossroad{
     id = Node,
-    cells = build_crossroad_cells(),
-    roads = build_sorted_roads(SortedRoads, 0)
+    cells = Cells,
+    roads = build_sorted_roads(SortedRoads, 0),
+    length = Length,
+    width = Width
   }.
 
+build_no_cells(0, _) ->
+  #{};
 
-build_crossroad_cells() ->
-  #{}.
+build_no_cells(NoCells, CurrId) ->
+  maps:put(CurrId, #cell{
+    id = CurrId
+  }, build_no_cells(NoCells - 1, CurrId + 1)).
+
+build_crossroad_cells(Length, Width) ->
+  build_no_cells(Width * Length, 0).
 
 %%%-------------------------------------------------------------------
 %%% @private

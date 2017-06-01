@@ -19,7 +19,9 @@
 -record(crossroad, {
     id :: id(),
     cells = #{} :: #{id() => cell()},
-    roads = #{} :: #{id() => id()}
+    roads = #{} :: #{id() => id()},
+    length :: integer(),
+    width :: integer()
 
 }).
 
@@ -36,15 +38,14 @@
     id :: id(),
     velocity_limit :: non_neg_integer(),
     lanes = #{} :: #{id() => lane()},
-    no_lanes :: integer()
+    no_lanes :: integer(),
+    special_rules = #{}
 }).
 
 -record(lane, {
     id :: id(),
     cells = #{} :: #{id() => cell()},
-    no_cells :: integer(),
-    length :: integer(),
-    width :: integer()
+    no_cells :: integer()
 }).
 
 -record(cell, {
@@ -66,7 +67,8 @@
     graph :: #{id() => list()},
     x_graph :: #{id() => list()},
     way_data :: #{id() => #{}},
-    node_data :: #{id() => #{}}
+    node_data :: #{id() => #{}},
+    transposed_graph :: #{id() => #{}}
 }).
 
 
