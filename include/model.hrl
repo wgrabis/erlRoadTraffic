@@ -38,7 +38,8 @@
     id :: id(),
     velocity_limit :: non_neg_integer(),
     lanes = #{} :: #{id() => lane()},
-    no_lanes :: integer()
+    no_lanes :: integer(),
+    special_rules = #{}
 }).
 
 -record(lane, {

@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author Jakub Kudzia
 %%% @doc
-%%% WRITEME
+%%% Module containing model building functions
 %%% @end
 %%%-------------------------------------------------------------------
 -module(model).
@@ -26,6 +26,11 @@
 -define(DEFAULT_MAXSPEED, "50").
 -define(DEAD_END, none_xroad).
 -define(DEAD_END_CROSSROAD_SIZE, 1).
+-define(LEFT_RULE, 0).
+-define(STRAIGHT_RULE, 1).
+-define(RIGHT_RULE, 2).
+-define(MERGE_LEFT, 3).
+-define(MERGE_RIGHT, 4).
 
 
 %%%-------------------------------------------------------------------
@@ -123,9 +128,6 @@ contains_node_helper([#edge{node = Node} | _], Node) ->
 
 contains_node_helper([_ | Tail], Node) ->
   contains_node_helper(Tail, Node).
-
-
-
 
 build_roads([], CurrVisited, _, _) ->
   {#{}, CurrVisited};
@@ -304,10 +306,84 @@ initialize_fractions_falling(GraphData, PrevNode, CurrEdge, XCrossEnd, CurrId) -
       )
   end.
 
-get_edge_info(GraphData, WayId) ->
-  Tags = maps:get(<<"tags">>, maps:get(WayId, GraphData#graphData.way_data, #{})),
+
+check_orientation(Way, PrevNode, CurrNode) ->
+  Nodes = maps:get(<<"nodes">>, Way, []),
+  [NextNode | _] = lists:dropwhile(
+    fun (Elem) ->
+      case Elem of
+        PrevNode ->
+          true;
+        _ ->
+          false
+      end
+    end, Nodes),
+  case NextNode of
+    CurrNode ->
+      <<"forward">>;
+    _ ->
+      <<"backward">>
+  end.
+
+
+
+build_turn_info(BinaryTurnInfo) when BinaryTurnInfo == none->
+  none;
+
+build_turn_info(BinaryTurnInfo)->
+  TurnInfoList = re:split(BinaryTurnInfo, "\\|"),
+  {OutTurnInfo, _} = lists:foldl(fun
+                  (Record, {CurrMap, Index}) ->
+                    case Record of
+                      <<"">> ->
+                        {CurrMap, Index + 1};
+                      _ ->
+                        Turns = lists:foldl(fun
+                                              (CurrInfo, CurrList) ->
+                                                case CurrInfo of
+                                                  <<"left">> ->
+                                                    Turn = ?LEFT_RULE;
+                                                  <<"through">> ->
+                                                    Turn = ?STRAIGHT_RULE;
+                                                  <<"right">> ->
+                                                    Turn = ?RIGHT_RULE;
+                                                  <<"merge_to_left">> ->
+                                                    Turn = ?MERGE_LEFT;
+                                                  <<"merge_to_right">> ->
+                                                    Turn = ?MERGE_RIGHT
+                                                end,
+                                                CurrList ++ [Turn]
+                                            end, [],re:split(Record, ";")),
+                        {maps:put(Index, Turns, CurrMap), Index + 1}
+                    end
+                end, {#{}, 0}, TurnInfoList),
+  OutTurnInfo.
+
+
+get_edge_info(GraphData, WayId, PrevNode, CurrNode) ->
+  Way = maps:get(WayId, GraphData#graphData.way_data),
+  Orientation = check_orientation(Way, PrevNode, CurrNode),
+  Tags = maps:get(<<"tags">>, Way, #{}),
+  case maps:get(<<"lanes:", Orientation/binary>>, Tags, none) of
+    none ->
+      case maps:get(<<"oneway">>, Tags, <<"no">>) of
+        <<"no">> ->
+          Lanes = binary_to_integer(maps:get(<<"lanes">>, Tags, <<"2">>)) div 2;
+        <<"yes">> ->
+          Lanes = binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>))
+      end;
+    Value ->
+      Lanes = binary_to_integer(Value)
+  end,
+  case maps:get(<<"oneway">>, Tags, <<"no">>) of
+    <<"no">> ->
+      TurnInfo = build_turn_info(maps:get(<<"turn:lanes:", Orientation/binary>>, Tags, none));
+    <<"yes">> ->
+      TurnInfo = build_turn_info(maps:get(<<"turn:lanes:">>, Tags, none))
+  end,
   {
-    binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>)),
+    Lanes,
+    TurnInfo,
     binary_to_integer(maps:get(<<"maxspeed">>, Tags, <<?DEFAULT_MAXSPEED>>))
   }.
 
@@ -321,7 +397,9 @@ count_edge_length(GraphData, BeginNodeId, EndNodeId) ->
 
 initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
 
-  {NoLanes, MaxSpeed} = get_edge_info(GraphData, Edge#edge.way_id),
+  {NoLanes, TurnInfo, MaxSpeed} = get_edge_info(GraphData, Edge#edge.way_id,BeginNode, Edge#edge.node),
+  io:fwrite("~w~n", [NoLanes]),
+
   WayLength = count_edge_length(GraphData, BeginNode, Edge#edge.node),
   Lanes = build_lanes(WayLength, NoLanes, 0),
 
@@ -329,7 +407,8 @@ initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
     id = FractionId,
     no_lanes = NoLanes,
     velocity_limit = MaxSpeed,
-    lanes =  Lanes
+    lanes =  Lanes,
+    special_rules = TurnInfo
   }.
 
 build_lanes(_, NoLanes, _) when NoLanes == 0 ->
