@@ -11,3 +11,4 @@
 -define(DEFAULT_LANES_NUM, <<"1">>).
 -define(DEFAULT_SPEED_LIMIT, <<"5">>).
 -define(DEFAULT_ACCELERATION, 1).
+-define(CHANGE_LANE_PROBABILITY, 0.2).

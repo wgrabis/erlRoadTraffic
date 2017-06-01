@@ -39,9 +39,10 @@
     velocity_limit :: non_neg_integer(),
     lanes = #{} :: #{id() => lane()},
     no_lanes :: integer(),
-    special_rules = #{}
+    special_rules =#{} :: map() %mapping for merging and splitting lanes
 }).
 
+%%Lanes are numerated from left to right
 -record(lane, {
     id :: id(),
     cells = #{} :: #{id() => cell()},
