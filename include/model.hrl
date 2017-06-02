@@ -21,17 +21,18 @@
     cells = #{} :: #{id() => cell()},
     roads = #{} :: #{id() => id()},
     length :: integer(),
-    width :: integer()
-
+    width :: integer(),
+    empty_cells_before = undefined :: #{road_id() => #{lane_id() => non_neg_integer()}} | undefined
 }).
 
 -record(road, {
     id :: id(),
-    side_rising = #{} :: #{id() => road_fraction()},
-    side_falling = #{} :: #{id() => road_fraction()},
+    side_rising = #{} :: #{fraction_id() => road_fraction()},
+    side_falling = #{} :: #{fraction_id() => road_fraction()},
     begin_crossroad :: id(),
     end_crossroad :: id(),
-    no_fractions :: integer()
+    no_fractions :: integer(),
+    empty_cells_before = undefined :: #{road_id() => #{lane_id() => non_neg_integer()}} | undefined
 }).
 
 -record(road_fraction, {
@@ -73,8 +74,12 @@
 }).
 
 
-
 -type id()             :: non_neg_integer().
+-type road_id()        :: id().
+-type xroad_id()       :: id().
+-type fraction_id()    :: id().
+-type lane_id()        :: id().
+-type cell_id()        :: id().
 -type road_map()       :: #road_map{}.
 -type crossroad()      :: #crossroad{}.
 -type road()           :: #road{}.
