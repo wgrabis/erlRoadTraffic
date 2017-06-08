@@ -15,6 +15,7 @@
 
 %% API
 %%-export([change_lane/2]).
+-export([simulate/1]).
 
 
 %%%-------------------------------------------------------------------
@@ -22,8 +23,8 @@
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
-simulate(#road_map{roads=Roads, crossroads=Crossroads}) ->
 
+simulate(#road_map{roads=Roads, crossroads=Crossroads}) ->
     {UpdatedRoads, UpdatedCrossroads} = progress_cars_on_roads(Roads, Crossroads),
 %%    {UpdatedRoads2, UpdatedCrossroads2} = progress_cars_on_xroads(UpdatedRoads, UpdatedCrossroads),
     #road_map{roads= UpdatedRoads, crossroads = UpdatedCrossroads}.
@@ -134,14 +135,13 @@ progress_cars_on_lane(LaneId, Ctx0) ->
             false ->
                 Ctx2;
             _ ->
-                case change_lane(Ctx) of
-%%                    TODO use ctx in these functions
+                case change_lane(Ctx2) of
                     no_change ->
-                        try_move_forward(Ctx);
+                        try_move_forward(Ctx2);
                     left ->
-                        try_change_lane_to_left(Ctx);
+                        try_change_lane_to_left(Ctx2);
                     right ->
-                        try_change_lane_to_right(Ctx)
+                        try_change_lane_to_right(Ctx2)
                 end
         end
     end, Ctx1, lists:sort(maps:keys(Cells))).
@@ -184,7 +184,7 @@ try_change_lane(Ctx, Direction) ->
     end.
 
 change_lane(Ctx) ->
-    Lanes = progress_ctx:get_lane(Ctx),
+    Lanes = progress_ctx:get_lanes(Ctx),
     LastLane =  length(maps:keys(Lanes)) - 1,
     LaneId = progress_ctx:get_lane_id(Ctx),
     case LaneId of
@@ -227,14 +227,13 @@ try_move_forward(Ctx) ->
     RoadFractions = progress_ctx:get_fractions(Ctx),
     Velocity = get_car_velocity(SrcCell),
     NewVelocity = maybe_accelerate(Velocity),
-    Car = get_car(SrcCell),
     EmptyCellsBefore = progress_ctx:get_empty_cells_number(Ctx),
     NoFractions = progress_ctx:get_fractions_no(Ctx),
 
 
     {UpdatedCar, DeltaX} = case way_is_free(NewVelocity, EmptyCellsBefore) of
         true ->
-            {Car#car{velocity=NewVelocity}, NewVelocity div ?CAR_SIZE};
+            {Car#car{velocity=NewVelocity}, NewVelocity};
         false ->
             {Car#car{velocity=0}, EmptyCellsBefore}
     end,
@@ -250,7 +249,7 @@ try_move_forward(Ctx) ->
                 TargetCellId2 when TargetCellId2 < 0 ->
                     % move in range of same road_fraction
                     SrcCell2 = SrcCell#cell{car = undefined},
-                    TargetCell = maps:get(TargetCell, SrcCells),
+                    TargetCell = maps:get(TargetCellId, SrcCells),
                     TargetCell2 = TargetCell#cell{car = UpdatedCar},
                     SrcCells2 = SrcCells#{
                         SrcCellId => SrcCell2,

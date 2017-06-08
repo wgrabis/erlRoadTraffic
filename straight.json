@@ -1,0 +1,138 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "osm3s": {
+    "timestamp_osm_base": "2017-06-08T19:46:21Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+    {
+      "type": "way",
+      "id": 119918895,
+      "nodes": [
+        240985580,
+        1876754735,
+        266684908,
+        4860982200,
+        1642529083,
+        240985582,
+        1417495932,
+        273459783,
+        264106094
+      ],
+      "tags": {
+        "cycleway": "no",
+        "foot": "yes",
+        "highway": "tertiary",
+        "lanes": "2",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Kazimierza Wielkiego",
+        "oneway": "no",
+        "ref": "2265K",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 475556393,
+      "nodes": [
+        267538291,
+        2652067725,
+        284745536,
+        240985580
+      ],
+      "tags": {
+        "cycleway": "no",
+        "foot": "yes",
+        "highway": "tertiary",
+        "lanes": "3",
+        "lanes:backward": "2",
+        "lanes:forward": "1",
+        "maxspeed": "50",
+        "maxspeed:conditional": "60 @ (23:00-05:00)",
+        "name": "Kazimierza Wielkiego",
+        "oneway": "no",
+        "ref": "2265K",
+        "source:maxspeed": "PL:urban",
+        "surface": "asphalt",
+        "turn:lanes:backward": "left|through;right"
+      }
+    },
+    {
+      "type": "node",
+      "id": 240985580,
+      "lat": 50.0726981,
+      "lon": 19.9210960
+    },
+    {
+      "type": "node",
+      "id": 266684908,
+      "lat": 50.0722215,
+      "lon": 19.9224782
+    },
+    {
+      "type": "node",
+      "id": 1642529083,
+      "lat": 50.0721671,
+      "lon": 19.9226631
+    },
+    {
+      "type": "node",
+      "id": 1876754735,
+      "lat": 50.0724549,
+      "lon": 19.9217941
+    },
+    {
+      "type": "node",
+      "id": 4860982200,
+      "lat": 50.0721860,
+      "lon": 19.9225987
+    },
+    {
+      "type": "node",
+      "id": 267538291,
+      "lat": 50.0729690,
+      "lon": 19.9203648
+    },
+    {
+      "type": "node",
+      "id": 284745536,
+      "lat": 50.0728808,
+      "lon": 19.9206164
+    },
+    {
+      "type": "node",
+      "id": 2652067725,
+      "lat": 50.0729059,
+      "lon": 19.9205473
+    },
+    {
+      "type": "node",
+      "id": 240985582,
+      "lat": 50.0718201,
+      "lon": 19.9237557
+    },
+    {
+      "type": "node",
+      "id": 264106094,
+      "lat": 50.0715985,
+      "lon": 19.9247219
+    },
+    {
+      "type": "node",
+      "id": 273459783,
+      "lat": 50.0716617,
+      "lon": 19.9244213
+    },
+    {
+      "type": "node",
+      "id": 1417495932,
+      "lat": 50.0716972,
+      "lon": 19.9242542
+    }
+
+  ]
+}

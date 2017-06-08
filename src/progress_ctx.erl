@@ -105,7 +105,11 @@ get_lane(LaneId, FractionId, Ctx) ->
 get_lane(Ctx = #progress_ctx{lane_id = LaneId, fraction_id = FractionId}) ->
     get_lane(LaneId, FractionId, Ctx).
 
-get_lane_ids(#progress_ctx{road_fractions = #road_fraction{lanes = Lanes}}) ->
+get_lane_ids(#progress_ctx{
+    fraction_id = FractionId,
+    road_fractions = RoadFractions}
+) ->
+    #road_fraction{lanes = Lanes} = maps:get(FractionId, RoadFractions),
     maps:keys(Lanes).
 
 get_lanes(FractionId, Ctx) ->
@@ -143,24 +147,29 @@ get_empty_cells_number(Ctx = #progress_ctx{
     #road_fraction{special_rules = SpecialRules} = get_fraction(Ctx),
     case maps:is_key(LaneId, SpecialRules) of
         false ->
-            maps:get(LaneId, EmptyCells);
+            maps:get(LaneId, EmptyCells, 0);
         _ ->
             0
     end.
 
-count_empty_cells(#progress_ctx{
+count_empty_cells(Ctx = #progress_ctx{
     road_id = RoadId,
     crossroad = XRoad =
         #crossroad{
             width = Width,
             length = Length
 }}) ->
-    case RoadId rem 2 == 0 of
-        true ->
-            lists:foldr(fun() ->
-                ok %todo
-            end, #{}, lists:seq(0, Width - 1))
-    end.
+
+    EmptyCells = lists:foldl(fun(N, AccIn) ->   %todo only for tests
+        AccIn#{N => 100}
+    end, #{}, lists:seq(0, 10)),
+    Ctx#progress_ctx{empty_cells_before = EmptyCells}.
+%%    case RoadId rem 2 == 0 of
+%%        true ->
+%%            lists:foldr(fun() ->
+%%                ok %todo
+%%            end, #{}, lists:seq(0, Width - 1))
+%%    end.
 
 
 get_row_helper(_, _, MaxPos, MaxPos) ->

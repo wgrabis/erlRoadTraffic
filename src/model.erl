@@ -11,11 +11,11 @@
 -include("constants.hrl").
 
 %% API
--export([initialize/2]).
+-export([initialize/2, insert_car/7]).
 
 -ifdef(TEST).
     %% below functions are exported only for tests
-    -export([build_graphs/1]).
+-export([build_graphs/1]).
 -endif.
 -include_lib("eunit/include/eunit.hrl").
 
@@ -33,11 +33,11 @@
 %%%-------------------------------------------------------------------
 initialize(_Nodes, Ways) ->
   {BaseGraph, BaseTransposeGraph} = build_graphs(Ways),
-  io:format("~nBase:~n ~p", [BaseGraph]),
+%%  io:format("~nBase:~n ~p", [BaseGraph]),
   {Graph, TransposeGraph} = compress_osm_graph(BaseGraph, BaseTransposeGraph),
-  io:format("~nCompressed:~n ~p", [Graph]),
+%%  io:format("~nCompressed:~n ~p", [Graph]),
   Graph2 = build_crossroad_graphs(Graph, TransposeGraph),
-  io:format("~nCrossroads:~n ~p", [Graph2]),
+%%  io:format("~nCrossroads:~n ~p", [Graph2]),
   initialize_road_map(#graphData{
     node_data = _Nodes,
     way_data = Ways,
@@ -45,6 +45,41 @@ initialize(_Nodes, Ways) ->
     x_graph = Graph2,
     transposed_graph = TransposeGraph
   }).
+
+insert_car(Car, CellId, LaneId, FractionId, Side, RoadId,
+    RoadMap = #road_map{roads=Roads}
+) ->
+    Road = maps:get(RoadId, Roads),
+    Road2 = insert_car_to_road(Car, CellId, LaneId, FractionId, Side, Road),
+    RoadMap#road_map{roads = Roads#{RoadId => Road2}}.
+
+insert_car_to_road(Car, CellId, LaneId, FractionId, falling,
+    Road = #road{side_falling=SideFalling}
+) ->
+    Fraction = maps:get(FractionId, SideFalling),
+    Fraction2 = insert_car_to_fraction(Car, CellId, LaneId, Fraction),
+    Road#road{side_falling = SideFalling#{FractionId => Fraction2}};
+insert_car_to_road(Car, CellId, LaneId, FractionId, rising,
+    Road = #road{side_rising=SideRising}
+) ->
+    Fraction = maps:get(FractionId, SideRising),
+    Fraction2 = insert_car_to_fraction(Car, CellId, LaneId, Fraction),
+    Road#road{side_rising = SideRising#{FractionId => Fraction2}}.
+
+insert_car_to_fraction(Car, CellId, LaneId, Fraction = #road_fraction{lanes=Lanes}) ->
+    Lane = maps:get(LaneId, Lanes),
+    Lane2 = insert_car_to_lane(Car, CellId, Lane),
+    Fraction#road_fraction{lanes = Lanes#{LaneId => Lane2}}.
+
+insert_car_to_lane(Car, CellId, Lane = #lane{cells = Cells}) ->
+    Cell = maps:get(CellId, Cells),
+    Cell2 = insert_car_to_cell(Car, Cell),
+    Lane#lane{cells = Cells#{CellId => Cell2}}.
+
+insert_car_to_cell(Car, Cell) ->
+    Cell#cell{car=Car}.
+
+
 
 
 %%%-------------------------------------------------------------------
@@ -395,13 +430,20 @@ initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
   WayLength = count_edge_length(GraphData, BeginNode, Edge#edge.node),
   Lanes = build_lanes(WayLength, NoLanes, 0),
 
-  #road_fraction{
-    id = FractionId,
-    no_lanes = NoLanes,
-    velocity_limit = MaxSpeed,
-    lanes =  Lanes,
-    special_rules = TurnInfo
-  }.
+    case TurnInfo of
+        none ->
+            EndTurnInfo = #{};
+        Val ->
+            EndTurnInfo = Val
+    end,
+
+    #road_fraction{
+        id = FractionId,
+        no_lanes = NoLanes,
+        velocity_limit = MaxSpeed,
+        lanes =  Lanes,
+        special_rules = EndTurnInfo
+    }.
 
 build_lanes(_, NoLanes, _) when NoLanes == 0 ->
   #{};

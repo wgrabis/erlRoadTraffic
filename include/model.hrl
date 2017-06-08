@@ -32,7 +32,8 @@
     begin_crossroad :: id(),
     end_crossroad :: id(),
     no_fractions :: integer(),
-    empty_cells_before = undefined :: #{road_id() => #{lane_id() => non_neg_integer()}} | undefined
+    empty_cells_before_rising = #{} :: #{lane_id() => non_neg_integer()},
+    empty_cells_before_falling = #{} :: #{lane_id() => non_neg_integer()}
 }).
 
 -record(road_fraction, {
