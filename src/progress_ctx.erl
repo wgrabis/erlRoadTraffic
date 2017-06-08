@@ -21,7 +21,11 @@
     get_lane/3, get_lane/1, get_lanes/2, get_lanes/1, get_lane_id/1,
     get_fraction_id/1, get_cell_id/1, update_fraction/2, get_empty_cells_number/1,
     get_crossroad/1, init/6, init/4, get_fraction_ids/1, set_fraction_id/2,
-    get_lane_ids/1, set_lane_id/2, count_empty_cells/1, get_fractions_no/1, update_fractions/2]).
+    get_lane_ids/1, set_lane_id/2, count_empty_cells/1, get_fractions_no/1, update_fractions/2,
+    get_column_crossroad/2, get_row_crossroad/2, get_cell_crossroad/3, set_cell_crossroad/4,
+    set_column_crossroad/3, set_row_crossroad/3
+
+]).
 
 -record(progress_ctx, {
     cell_id :: id(),
@@ -157,3 +161,78 @@ count_empty_cells(#progress_ctx{
                 ok %todo
             end, #{}, lists:seq(0, Width - 1))
     end.
+
+
+get_row_helper(_, _, MaxPos, MaxPos) ->
+    #{};
+
+get_row_helper(Cells, Indent, Pos, MaxPos) ->
+    ChildMap = get_row_helper(Cells, Indent, Pos + 1, MaxPos),
+    maps:put(Pos, maps:get(Indent + Pos, Cells), ChildMap).
+
+get_column_helper(_, _, MaxPos, MaxPos, _) ->
+    #{};
+
+get_column_helper(Cells, Indent, Pos, MaxPos, Width) ->
+    ChildMap = get_column_helper(Cells, Indent, Pos + 1, MaxPos, Width),
+    maps:put(Pos, maps:get(Indent + Pos * Width, Cells), ChildMap).
+
+get_row_crossroad(Y, #crossroad{
+    cells = Cells,
+    width = Width
+}) ->
+    get_row_helper(Cells, Y * Width, 0, Width).
+
+get_column_crossroad(X, #crossroad{
+    cells = Cells,
+    width = Width,
+    length = Length
+}) ->
+    get_column_helper(Cells, X, 0, Length, Width).
+
+
+get_cell_crossroad(X, Y, #crossroad{
+    cells = Cells,
+    width = Width
+}) ->
+    maps:get(Y * Width + X, Cells).
+
+set_row_crossroad(RowMap, Y, Crossroad = #crossroad{
+    cells = Cells,
+    width = Width
+}) ->
+    NewCells = maps:fold(
+        fun(N, Cell, {EditedCrossroad}) ->
+            maps:update(Y * Width + N, Cell, EditedCrossroad)
+        end, {Cells}, RowMap
+    ),
+    Crossroad#crossroad{
+        cells = NewCells
+    }.
+
+
+set_column_crossroad(ColMap, X, Crossroad = #crossroad{
+    cells = Cells,
+    width = Width
+}) ->
+    NewCells = maps:fold(
+        fun(N, Cell, {EditedCells}) ->
+            maps:update(N * Width + X, Cell, EditedCells)
+        end, {Cells}, ColMap
+    ),
+    Crossroad#crossroad{
+        cells = NewCells
+    }.
+
+set_cell_crossroad(NewCell, X, Y, Crossroad = #crossroad{
+    cells = Cells,
+    width = Width
+}) ->
+    NewCells = maps:update(Y * Width + X, NewCell, Cells),
+    Crossroad#crossroad{
+        cells = NewCells
+    }.
+
+
+get_to_target_cells() ->
+    erlang:error(not_implemented).

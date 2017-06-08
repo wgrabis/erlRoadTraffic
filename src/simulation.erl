@@ -34,7 +34,13 @@ simulate(#road_map{roads=Roads, crossroads=Crossroads}) ->
 %%% @end
 %%%-------------------------------------------------------------------
 progress_cars_on_xroads(Roads, Crossroads) ->
-    erlang:error(not_implemented).
+    erlang:error(not_implemented);
+
+
+
+progress_cars_on_xroads(Roads, #crossroad{
+
+}) -> erlang:error(not_implemented).
 
 
 %%%-------------------------------------------------------------------

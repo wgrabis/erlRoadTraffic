@@ -57,7 +57,8 @@
 
 -record(car, {
     id :: id(),
-    velocity :: integer()
+    velocity :: integer(),
+    target_cell :: id() | undefined
 }).
 
 -record(edge, {
