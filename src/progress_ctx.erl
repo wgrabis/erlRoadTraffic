@@ -23,8 +23,7 @@
     get_crossroad/1, init/6, init/4, get_fraction_ids/1, set_fraction_id/2,
     get_lane_ids/1, set_lane_id/2, count_empty_cells/1, get_fractions_no/1, update_fractions/2,
     get_column_crossroad/2, get_row_crossroad/2, get_cell_crossroad/3, set_cell_crossroad/4,
-    set_column_crossroad/3, set_row_crossroad/3
-
+    set_column_crossroad/3, set_row_crossroad/3, id_to_position/2
 ]).
 
 -record(progress_ctx, {
@@ -37,6 +36,9 @@
     crossroad :: crossroad(),
     no_fractions :: non_neg_integer()
 }).
+
+
+
 
 init(RoadId, RoadFractions, EndCrossRoad, NoFractions) ->
     #progress_ctx{
@@ -243,5 +245,7 @@ set_cell_crossroad(NewCell, X, Y, Crossroad = #crossroad{
     }.
 
 
-get_to_target_cells() ->
-    erlang:error(not_implemented).
+id_to_position(N, Width) ->
+    {N rem Width, N div Width}.
+
+

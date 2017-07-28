@@ -11,11 +11,13 @@
 -author("Jakub Kudzia").
 
 -include("model.hrl").
+-include("progress.hrl").
 -include("constants.hrl").
 
 %% API
 %%-export([change_lane/2]).
 -export([simulate/1]).
+
 
 
 %%%-------------------------------------------------------------------
@@ -34,17 +36,158 @@ simulate(#road_map{roads=Roads, crossroads=Crossroads}) ->
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
-progress_cars_on_xroads(Roads, Crossroads) ->
-    erlang:error(not_implemented);
+progress_cars_on_xroads(Roads, Crossroads, Timestamp) ->
+    erlang:error(not_implemented).
 
 
 
-progress_cars_on_xroads(Roads, #crossroad{
+progress_cars_on_xroad(Roads, Crossroad = #crossroad{
+    id = Id,
+    cells = Cells,
+    roads = AdjRoads,
+    length = Length,
+    width = Width,
+    empty_cells_before = EmptyCells
+}, Timestamp) ->
 
-}) -> erlang:error(not_implemented).
+    RoadFreeSpace = gen_free_space_map(Roads, AdjRoads, Id),
+    CrossRoadData = gen_xroad_lane_data_map(Roads, AdjRoads, Id),
+
+    case Timestamp rem 2 of
+        1 ->
+            EndCells = progress_cars_on_xroad_vertical(Roads, Crossroad, RoadFreeSpace, CrossRoadData, Cells);
+        0 ->
+            EndCells = progress_cars_on_xroad_horizontal(Roads, Crossroad, RoadFreeSpace, CrossRoadData, Cells)
+    end,
 
 
-%%%-------------------------------------------------------------------
+    Crossroad#crossroad{cells = EndCells}.
+
+
+
+progress_cars_on_xroad_horizontal(Roads, Crossroad, RoadFreeSpace, CrossRoadData, Cells) ->
+    {#lanes_data{in_no_lanes = In, out_no_lanes = Out}, Which} = crossroad_helpers:lanes_data_compare(
+        maps:get(<<0>>, CrossRoadData), maps:get(<<2>>, CrossRoadData,crossroad_helpers:empty_lane_data())),
+    case Which of
+        0 ->
+            InLanes = In,
+            OutLanes = Out;
+        1 ->
+            InLanes = Out,
+            OutLanes = In
+    end,
+    UpdatedCells = lists:foldl(
+        fun(N, {CurrCells}) ->
+            RowList = crossroad_helpers:get_row_crossroad(N, Crossroad, falling),
+            progress_cells_on_xroad(RowList, Roads, Crossroad, RoadFreeSpace, CurrCells)
+        end, {Cells}, lists:seq(0, OutLanes -1)),
+    lists:foldl(
+        fun(N, {CurrCells}) ->
+            RowList = crossroad_helpers:get_row_crossroad(N, Crossroad, rising),
+            progress_cells_on_xroad(RowList, Roads, Crossroad, RoadFreeSpace, CurrCells)
+        end, {UpdatedCells}, lists:seq(OutLanes, InLanes + OutLanes -1)).
+
+
+progress_cells_on_xroad(CellList, Roads, Crossroad, RoadFreeSpace, Cells) ->
+    .
+
+
+progress_cars_on_xroad_vertical(Roads, Crossroad, RoadFreeSpace, CrossRoadData, Cells) ->
+    {#lanes_data{in_no_lanes = In, out_no_lanes = Out}, Which} = crossroad_helpers:lanes_data_compare(
+        maps:get(<<1>>, CrossRoadData, crossroad_helpers:empty_lane_data()), maps:get(<<3>>, CrossRoadData,crossroad_helpers:empty_lane_data())),
+    case Which of
+        0 ->
+            InLanes = In,
+            OutLanes = Out;
+        1 ->
+            InLanes = Out,
+            OutLanes = In
+    end,
+    UpdatedCells = lists:foldl(
+        fun(N, {CurrCells}) ->
+            ColList = crossroad_helpers:get_column_crossroad(N, Crossroad, rising),
+            progress_cells_on_xroad(ColList, Roads, Crossroad, RoadFreeSpace, CurrCells)
+        end, {Cells}, lists:seq(0, InLanes -1)),
+    lists:foldl(
+        fun(N, {CurrCells}) ->
+            ColList = crossroad_helpers:get_column_crossroad(N, Crossroad, falling),
+            progress_cells_on_xroad(ColList, Roads, Crossroad, RoadFreeSpace, CurrCells)
+        end, {UpdatedCells}, lists:seq(InLanes, InLanes + OutLanes -1)).
+
+progress_xroad_operation({CX, CY}, Car, Crossroad, Roads) ->
+    {}.
+
+
+gen_free_space_map(Roads, IdMap, XRoadId) ->
+    maps:fold(
+        fun(Num, RoadId, {CurrFreeMap}) ->
+            #road{
+                begin_crossroad = BeginX,
+                end_crossroad = EndX,
+                empty_cells_before_falling = FreeSpaceFalling,
+                empty_cells_before_rising = FreeSpaceRising
+            } = maps:get(RoadId, Roads),
+            case XRoadId of
+                BeginX ->
+                    FreeSpace = FreeSpaceRising;
+                EndX ->
+                    FreeSpace = FreeSpaceFalling
+            end,
+            maps:put(Num, FreeSpace, CurrFreeMap)
+        end, {#{}}, IdMap
+    ).
+
+gen_xroad_lane_data_map(Roads, AdjRoads, XRoadId) ->
+    maps:fold(
+      fun(Num, RoadId, {CurrLaneMap}) ->
+          #road{
+              begin_crossroad = BeginX,
+              end_crossroad = EndX,
+              side_falling = FallingFractions,
+              side_rising = RisingFractions,
+              no_fractions = NoFractions
+          } = maps:get(RoadId, Roads),
+          NoLanesRising = maps:get(0, RisingFractions)#road_fraction.no_lanes,
+          NoLanesFalling = maps:get(NoFractions - 1, FallingFractions)#road_fraction.no_lanes,
+          case XRoadId of
+              BeginX ->
+                  maps:put(Num, #lanes_data{in_no_lanes = NoLanesFalling, out_no_lanes = NoLanesRising}, CurrLaneMap);
+              EndX ->
+                  maps:put(Num, #lanes_data{out_no_lanes = NoLanesFalling, in_no_lanes = NoLanesRising}, CurrLaneMap)
+          end
+      end, {#{}}, AdjRoads
+    ).
+
+
+
+
+split_vec_pos(Val1, Val2) when Val1 > Val2->
+
+split_vec_pos(Val1, Val2)
+
+
+
+get_to_target_cells(N, Target, Crossroad = #crossroad{
+    cells = Cells,
+    width = Width,
+    length = Length
+}, XLaneData) ->
+    {X1, Y1} = progress_ctx:id_to_position(N, Width),
+    {X2, Y2} = progress_ctx:id_to_position(Target, Width),
+    case Y1 == Y2 of
+        true ->
+            split_vec_pos(X1, X2, Cells);
+        false ->
+            case X1 == X2 of
+                true ->
+                    split_vec_map(Y1, Y2, get_column_crossroad(X1, Crossroad));
+                false ->
+                    erlang:error(not_implemented)
+            end
+    end.
+
+
+%%%-------------------------------  ------------------------------------
 %%% @doc
 %%% In one tour, car can maximally move from road to crossroad or from
 %%% crossroad to road. It can't move road->crossroad->road nor
