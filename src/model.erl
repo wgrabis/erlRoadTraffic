@@ -147,7 +147,7 @@ build_roads([NodeEdge| Tail], CurrVisited, GraphData, XNode) ->
         true ->
           {NodeRoad, NodeVisited} = initialize_road(CurrVisited, GraphData, XNode, NodeEdge),
           {TailRoad, TailVisited} = build_roads(Tail, NodeVisited, GraphData, XNode),
-          {maps:put(NodeEdge#edge.node, NodeRoad, TailRoad), TailVisited};
+          {maps:put(NodeEdge#edge.way_id, NodeRoad, TailRoad), TailVisited};
         false ->
           build_roads(Tail, CurrVisited, GraphData, XNode)
       end
@@ -204,7 +204,7 @@ initialize_road(CurrVisited, GraphData, XNode, StartEdge) ->
   end,
 
   Road = #road{
-    id = StartEdge#edge.node,
+    id = StartEdge#edge.way_id,
     begin_crossroad = XNode,
     end_crossroad = EndXNode,
     side_rising = RisingFractions,
@@ -406,12 +406,20 @@ initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
   WayLength = count_edge_length(GraphData, BeginNode, Edge#edge.node),
   Lanes = build_lanes(WayLength, NoLanes, 0),
 
+  case TurnInfo of
+      none ->
+          EndTurnInfo = #{};
+      Val ->
+          EndTurnInfo = Val
+  end,
+
+
   #road_fraction{
     id = FractionId,
     no_lanes = NoLanes,
     velocity_limit = MaxSpeed,
     lanes =  Lanes,
-    special_rules = TurnInfo
+    special_rules = EndTurnInfo
   }.
 
 build_lanes(_, NoLanes, _) when NoLanes == 0 ->
@@ -806,3 +814,30 @@ check_vertex_redundancy(V, Graph, TransGraph) ->
     {false, _, _} ->
       {Graph, TransGraph}
   end.
+
+update_repeated_edges(Graph, TransGraph, XGraph) ->
+  maps:fold(
+    fun (V, _, {EdgeSet, }) ->
+      AdjList = maps:get(V, Graph),
+      lists:foldl(
+
+      )
+    end, {sets:new()}, XGraph
+  ).
+
+remove_double_edges(AdjList, Graph, TransGraph, Id, EdgeSet) ->
+  lists:foldl(
+    fun(#edge{node = Node, way_id = WayId}, {CurrGraph, CurrTransGraph, CurrId, CurrEdgeSet})->
+      case sets:is_element(WayId, CurrEdgeSet) of
+        true->
+          ;
+        false ->
+
+      end
+    end, {Graph, TransGraph, Id, EdgeSet}, AdjList
+  )
+
+update_edge_id(Node1, Node2, NewEdgeId, OldEdgeId, Graph, TransGraph)->
+
+
+  {}.
