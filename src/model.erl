@@ -14,7 +14,7 @@
 
 -ifdef(TEST).
     %% below functions are exported only for tests
-    -export([build_graphs/1]).
+-export([build_graphs/1, build_crossroad_graphs/2, build_crossroad_graphs_and_simplify/2]).
 -endif.
 -include_lib("eunit/include/eunit.hrl").
 
@@ -47,7 +47,7 @@ initialize(_Nodes, Ways) ->
   io:format("~nBase:~n ~p", [BaseGraph]),
   {Graph, TransposeGraph} = compress_osm_graph(BaseGraph, BaseTransposeGraph),
   io:format("~nCompressed:~n ~p", [Graph]),
-  Graph2 = build_crossroad_graphs(Graph, TransposeGraph),
+  Graph2 = build_crossroad_graphs_and_simplify(Graph, TransposeGraph),
   io:format("~nCrossroads:~n ~p", [Graph2]),
   initialize_road_map(#graphData{
     node_data = _Nodes,
@@ -108,8 +108,6 @@ dfs_build_crossroads([Head | Tail], GraphData, RoadMap, Visited)->
 %%% Builds adjacency list for each node.
 %%% @end
 %%%-------------------------------------------------------------------
-
-
 walk_node_graph(InputVisited, Node, GraphData) ->
   Visited = sets:add_element(Node, InputVisited),
   {NodeRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
@@ -368,16 +366,16 @@ get_edge_info(GraphData, WayId, PrevNode, CurrNode) ->
   Way = maps:get(WayId, GraphData#graphData.way_data),
   Orientation = check_orientation(Way, PrevNode, CurrNode),
   Tags = maps:get(<<"tags">>, Way, #{}),
-  case maps:get(<<"lanes:", Orientation/binary>>, Tags, none) of
+  Lanes = case maps:get(<<"lanes:", Orientation/binary>>, Tags, none) of
     none ->
       case maps:get(<<"oneway">>, Tags, <<"no">>) of
         <<"no">> ->
-          Lanes = binary_to_integer(maps:get(<<"lanes">>, Tags, <<"2">>)) div 2;
+          binary_to_integer(maps:get(<<"lanes">>, Tags, <<"2">>)) div 2;
         <<"yes">> ->
-          Lanes = binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>))
+          binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>))
       end;
     Value ->
-      Lanes = binary_to_integer(Value)
+      binary_to_integer(Value)
   end,
   case maps:get(<<"oneway">>, Tags, <<"no">>) of
     <<"no">> ->
@@ -721,12 +719,17 @@ is_oneway(_) ->
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
+build_crossroad_graphs_and_simplify(Graph, TransposedGraph) ->
+  case build_crossroad_graphs(Graph, TransposedGraph) of
+    {Graph, TransposedGraph} -> simplify_crossroad_graph(Graph);
+    {Graph2, TransposedGraph2} -> build_crossroad_graphs_and_simplify(Graph2, TransposedGraph2)
+  end.
 
 build_crossroad_graphs(Graph, TransposedGraph) ->
-  {XGraph, _} = maps:fold(fun (V, _, {CurrGraph, CurrTransposedGraph}) ->
-    filter_vertices(V, CurrTransposedGraph, CurrGraph)
+    {XGraph, TransposedXGraph} = maps:fold(fun (V, _, {CurrGraph, CurrTransposedGraph}) ->
+        filter_vertices(V, CurrTransposedGraph, CurrGraph)
     end, {Graph, TransposedGraph}, Graph),
-  simplify_crossroad_graph(XGraph).
+  {XGraph, TransposedXGraph}.
 
 
 simplify_crossroad_graph(Graph) ->
@@ -737,11 +740,11 @@ simplify_crossroad_graph(Graph) ->
           CurrList ++ [Node]
         end, [], AdjList
       ),
-      maps:put(V, NewAdjList, CurrGraph)
+      maps:put(V, lists:usort(NewAdjList), CurrGraph)
     end, #{}, Graph
   ).
 
-
+%% usuwa zbedne wierzcholki A -> B -> C => A -> C
 filter_vertices(V, CurrTransposedGraph, CurrGraph) ->
   AdjList = maps:get(V, CurrGraph),
   TransposedAdjList = maps:get(V, CurrTransposedGraph),
@@ -766,9 +769,9 @@ reconnect_vertices(Node1, Node2, RemovedNode, CurrGraph, CurrTransposedGraph) ->
 
 
 update_both_graphs(NodeX, RemovedNode, NewNode, CurrGraph, CurrTransposedGraph) ->
-  RegAdjList = get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph),
+  RegularAdjList = get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph),
   TrnAdjList = get_updated_adj(NodeX, RemovedNode, NewNode, CurrTransposedGraph),
-  {maps:update(NodeX, RegAdjList, CurrGraph),
+  {maps:update(NodeX, RegularAdjList, CurrGraph),
     maps:update(NodeX, TrnAdjList, CurrTransposedGraph)}.
 
 get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph) ->
@@ -778,6 +781,8 @@ get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph) ->
       case Node of
         RemovedNode ->
           CurrList ++ [#edge{node = NewNode, way_id = WayId}];
+        NodeX ->
+          CurrList;
         RegNode ->
           CurrList ++ [#edge{node = RegNode, way_id = WayId}]
       end
@@ -785,6 +790,8 @@ get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph) ->
   ),
   NewAdjList.
 
+% usuwa wierzchołki, ktore znajduja sie na srodku drogi i nie sa skrzyzowaniami
+% maja dwoch sasiadow, polączonych droga o tym samym wayid
 compress_osm_graph(Graph, TransposedGraph) ->
   maps:fold(
     fun (V, _, {CurrGraph, CurrTransGraph}) ->
@@ -815,29 +822,29 @@ check_vertex_redundancy(V, Graph, TransGraph) ->
       {Graph, TransGraph}
   end.
 
-update_repeated_edges(Graph, TransGraph, XGraph) ->
-  maps:fold(
-    fun (V, _, {EdgeSet, }) ->
-      AdjList = maps:get(V, Graph),
-      lists:foldl(
+%%update_repeated_edges(Graph, TransGraph, XGraph) ->
+%%  maps:fold(
+%%    fun (V, _, {EdgeSet, }) ->
+%%      AdjList = maps:get(V, Graph),
+%%      lists:foldl(
+%%
+%%      )
+%%    end, {sets:new()}, XGraph
+%%  ).
 
-      )
-    end, {sets:new()}, XGraph
-  ).
-
-remove_double_edges(AdjList, Graph, TransGraph, Id, EdgeSet) ->
-  lists:foldl(
-    fun(#edge{node = Node, way_id = WayId}, {CurrGraph, CurrTransGraph, CurrId, CurrEdgeSet})->
-      case sets:is_element(WayId, CurrEdgeSet) of
-        true->
-          ;
-        false ->
-
-      end
-    end, {Graph, TransGraph, Id, EdgeSet}, AdjList
-  )
-
-update_edge_id(Node1, Node2, NewEdgeId, OldEdgeId, Graph, TransGraph)->
-
-
-  {}.
+%%remove_double_edges(AdjList, Graph, TransGraph, Id, EdgeSet) ->
+%%  lists:foldl(
+%%    fun(#edge{node = Node, way_id = WayId}, {CurrGraph, CurrTransGraph, CurrId, CurrEdgeSet})->
+%%      case sets:is_element(WayId, CurrEdgeSet) of
+%%        true->
+%%          ;
+%%        false ->
+%%
+%%      end
+%%    end, {Graph, TransGraph, Id, EdgeSet}, AdjList
+%%  )
+%%
+%%update_edge_id(Node1, Node2, NewEdgeId, OldEdgeId, Graph, TransGraph)->
+%%
+%%
+%%  {}.

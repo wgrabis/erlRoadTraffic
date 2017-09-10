@@ -15,6 +15,7 @@
 -define(TEST_JSON, filename:join([?TEST_DIR, "test.json"])).
 -define(TEST_JSON2, filename:join([?TEST_DIR, "test2.json"])).
 -define(TEST_JSON3, filename:join([?TEST_DIR, "test3.json"])).
+-define(TEST_JSON5, filename:join([?TEST_DIR, "test5.json"])).
 
 -define(TEST_GRAPH1, #{
     <<"A">> => [
@@ -54,10 +55,8 @@
 }).
 
 -define(FILTERED_TEST_GRAPH1, #{
-    <<"A">> => [<<"N2">>],
     <<"B">> => [],
-    <<"N1">> => [<<"A">>, <<"B">>],
-    <<"N2">> => [<<"N1">>, <<"A">>]
+    <<"V">> => [<<"B">>]
 }).
 
 -define(FILTERED_TEST_GRAPH1_TRANSP, #{
@@ -108,10 +107,8 @@
 }).
 
 -define(FILTERED_TEST_GRAPH2, #{
-    <<"A">> => [<<"N1">>],
     <<"B">> => [],
-    <<"N1">> => [<<"N2">>, <<"B">>, <<"A">>],
-    <<"N2">> => [<<"N1">>, <<"A">>]
+    <<"V">> => [<<"B">>]
 }).
 
 -define(FILTERED_TEST_GRAPH2_TRANSP, #{
@@ -162,12 +159,51 @@
 
 -define(FILTERED_TEST_GRAPH3, #{
     <<"B">> => [],
-    <<"N1">> => [<<"N2">>, <<"B">>],
-    <<"N2">> => [<<"N1">>]
+    <<"V">> => [<<"B">>]
 }).
 
 -define(FILTERED_TEST_GRAPH3_TRANSP, #{
     <<"B">> => [<<"N1">>],
     <<"N1">> => [<<"N2">>],
     <<"N2">> => [<<"N1">>]
+}).
+
+-define(TEST_GRAPH5, #{
+    <<"A">> => [
+        #edge{node = <<"N2">>, way_id = 4}
+    ],
+    <<"B">> => [],
+    <<"N1">> => [
+        #edge{node = <<"A">>, way_id = 3},
+        #edge{node = <<"B">>, way_id = 5}
+    ],
+    <<"N2">> => [
+        #edge{node = <<"V">>, way_id = 1}
+    ],
+    <<"V">> => [
+        #edge{node = <<"N1">>, way_id = 2}
+    ]
+}).
+
+-define(TEST_GRAPH5_TRANSP, #{
+    <<"A">> => [
+        #edge{node = <<"N1">>, way_id = 3}
+    ],
+    <<"B">> => [
+        #edge{node = <<"N1">>, way_id = 5}
+    ],
+    <<"N1">> => [
+        #edge{node = <<"V">>, way_id = 2}
+    ],
+    <<"N2">> => [
+        #edge{node = <<"A">>, way_id = 4}
+    ],
+    <<"V">> => [
+        #edge{node = <<"N2">>, way_id = 1}
+    ]
+}).
+
+-define(FILTERED_TEST_GRAPH5, #{
+    <<"B">> => [],
+    <<"V">> => [<<"B">>]
 }).
