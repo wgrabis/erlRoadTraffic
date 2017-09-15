@@ -49,13 +49,14 @@ initialize(_Nodes, Ways) ->
   io:format("~nCompressed:~n ~p", [Graph]),
   Graph2 = build_crossroad_graphs_and_simplify(Graph, TransposeGraph),
   io:format("~nCrossroads:~n ~p", [Graph2]),
-  initialize_road_map(#graphData{
+  RoadMap = initialize_road_map(#graphData{
     node_data = _Nodes,
     way_data = Ways,
     graph = Graph,
     x_graph = Graph2,
     transposed_graph = TransposeGraph
-  }).
+  }),
+  {BaseGraph, Graph, Graph2, RoadMap}.
 
 
 %%%-------------------------------------------------------------------
