@@ -42,21 +42,25 @@
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
-initialize(_Nodes, Ways) ->
+initialize(Nodes, Ways) ->
   {BaseGraph, BaseTransposeGraph} = build_graphs(Ways),
   io:format("~nBase:~n ~p", [BaseGraph]),
   {Graph, TransposeGraph} = compress_osm_graph(BaseGraph, BaseTransposeGraph),
   io:format("~nCompressed:~n ~p", [Graph]),
-  Graph2 = build_crossroad_graphs_and_simplify(Graph, TransposeGraph),
-  io:format("~nCrossroads:~n ~p", [Graph2]),
-  RoadMap = initialize_road_map(#graphData{
-    node_data = _Nodes,
-    way_data = Ways,
-    graph = Graph,
-    x_graph = Graph2,
-    transposed_graph = TransposeGraph
-  }),
-  {BaseGraph, Graph, Graph2, RoadMap}.
+  io:format("~nCompressedT:~n ~p", [TransposeGraph]),
+  %todo tutaj aktualizacja wayów o nowe waye
+  {Graph2, TransposeGraph2, Ways2} = update_ways(Graph, TransposeGraph, Ways),
+  io:format("~nGraph2:~n ~p", [Graph2]),
+  io:format("~nTransposeGraph2:~n ~p", [TransposeGraph2]),
+  io:format("~nWays2:~n ~p", [Ways2]),
+  XGraph = build_crossroad_graphs_and_simplify(Graph2, TransposeGraph2),
+  initialize_road_map(#graphData{
+    node_data = Nodes,
+    way_data = Ways2,
+    graph = Graph2,
+    x_graph = XGraph,
+    transposed_graph = TransposeGraph2
+  }).
 
 
 %%%-------------------------------------------------------------------
@@ -151,6 +155,126 @@ build_roads([NodeEdge| Tail], CurrVisited, GraphData, XNode) ->
           build_roads(Tail, CurrVisited, GraphData, XNode)
       end
   end.
+
+
+%%-------------------------------------------------------------------
+%% @private
+%% @doc
+%% WRITEME
+%% @end
+%%-------------------------------------------------------------------
+update_ways(CompressedGraph, TCompressedGraph, Ways) ->
+  {CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays} =
+    filter_unchanged_ways(CompressedGraph, TCompressedGraph, Ways),
+
+  io:format("
+  CompressedGraph1: ~p
+  CompressedGraphUnchanged1: ~p
+  TCompressedGraph1: ~p
+  TCompressedGraphUnchanged1: ~p
+  ChangedWays: ~p
+  UnchangedWays: ~p
+  ", [CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays]),
+  update_ways(CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays).
+
+filter_unchanged_ways(Graph, TGraph, Ways) ->
+  maps:fold(fun(WayId, Way,
+      {Graph0, GraphUnchangedWays0, TGraph0, TGraphUnchangedWays0, Ways0, UnchangedWays}
+  ) ->
+    Nodes = maps:get(<<"nodes">>, Way),
+    From = hd(Nodes),
+    To = lists:last(Nodes),
+    case is_oneway(Way) of
+      true ->
+        case edge_in_graph({From, To}, WayId, Graph0) of
+          true ->
+            Graph1 = delete_edge({From, To}, WayId, Graph0),
+            TGraph1 = delete_edge({To, From}, WayId, TGraph0),
+            Ways1 = maps:remove(WayId, Ways0),
+            GraphUnchangedWays1 = update_node(From, To, GraphUnchangedWays0, WayId),
+            TGraphUnchangedWays1 = update_node(To, From, TGraphUnchangedWays0, WayId),
+            UnchangedWays1 = UnchangedWays#{WayId => Way},
+            {Graph1, GraphUnchangedWays1, TGraph1, TGraphUnchangedWays1, Ways1, UnchangedWays1};
+          false ->
+            {Graph0, GraphUnchangedWays0, TGraph0, TGraphUnchangedWays0, Ways0, UnchangedWays}
+        end;
+      false ->
+        case edge_in_graph({From, To}, WayId, Graph0) of
+          true ->
+            Graph1 = delete_edge({From, To}, WayId, Graph0),
+            Graph2 = delete_edge({To, From}, WayId, Graph1),
+            GraphUnchangedWays1 = update_node(From, To, GraphUnchangedWays0, WayId),
+            GraphUnchangedWays2 = update_node(To, From, GraphUnchangedWays1, WayId),
+            TGraph1 = delete_edge({To, From}, WayId, TGraph0),
+            TGraph2 = delete_edge({From, To}, WayId, TGraph1),
+            TGraphUnchangedWays1 = update_node(To, From, TGraphUnchangedWays0, WayId),
+            TGraphUnchangedWays2 = update_node(From, To, TGraphUnchangedWays1, WayId),
+            Ways1 = maps:remove(WayId, Ways0),
+            UnchangedWays1 = UnchangedWays#{WayId => Way},
+            {Graph2, GraphUnchangedWays2, TGraph2, TGraphUnchangedWays2, Ways1, UnchangedWays1};
+          false ->
+            {Graph0, GraphUnchangedWays0, TGraph0, TGraphUnchangedWays0, Ways0, UnchangedWays}
+      end
+    end
+  end, {Graph, #{}, TGraph, #{}, Ways, #{}}, Ways).
+
+edge_in_graph({From, To}, WayId, Graph) ->
+  case maps:get(From, Graph, undefined) of
+    undefined ->
+      false;
+    Nodes ->
+      lists:member(#edge{way_id = WayId, node = To}, Nodes)
+  end.
+
+delete_edge({From, To}, WayId, Graph) ->
+  Edge = #edge{way_id = WayId, node = To},
+  maps:update_with(From, fun(Nodes) ->
+    Nodes -- [Edge]
+  end, Graph).
+
+update_ways(Graph, GraphUnchangedWays, TGraph, TGraphUnchangedWays, ChangedWays, UnchangedWays) ->
+  {NewGraph, NewTGraph, NewWays} = maps:fold(fun(From, Nodes, AccIn) ->
+    lists:foldl(fun(#edge{way_id = WayId, node = To}, {Graph0, TGraph0, ChangedWays0}) ->
+        Way = maps:get(WayId, ChangedWays),
+        Graph1 = delete_edge({From, To}, WayId, Graph0),
+        TGraph1 = delete_edge({To, From}, WayId, TGraph0),
+        NewWayId = new_way_id(From, To, WayId),
+        Graph2 = update_node(From, To, Graph1, NewWayId),
+        TGraph2 = update_node(To, From, TGraph1, NewWayId),
+        ChangedWays1 = ChangedWays0#{NewWayId => Way#{
+            <<"id">> => NewWayId,
+            <<"nodes">> => [From, To]
+        }},
+        {Graph2, TGraph2, ChangedWays1}
+    end, AccIn, Nodes)
+  end, {Graph, TGraph, ChangedWays}, Graph),
+    Ways1 = maps:merge(NewWays, UnchangedWays),
+    WaysToDelete = maps:keys(ChangedWays),
+    Ways2 = maps:filter(fun(WayId, _Way) ->
+        not lists:member(WayId, WaysToDelete)
+    end, Ways1),
+  {
+    merge(NewGraph, GraphUnchangedWays),
+    merge(NewTGraph, TGraphUnchangedWays),
+    Ways2
+  }.
+
+merge(Graph1, Graph2) ->
+    maps:fold(fun(From, Nodes, AccIn) ->
+        Nodes2 = maps:get(From, Graph2, []),
+        AccIn#{From => Nodes ++ Nodes2}
+    end, #{}, Graph1).
+
+new_way_id(From, To, WayId) when From =< To ->
+  Args = [ensure_binary(From), ensure_binary(To), ensure_binary(WayId)],
+  crypto:hash(md5, Args);
+new_way_id(From, To, WayId) ->
+  new_way_id(To, From, WayId).
+
+
+ensure_binary(Arg) when is_binary(Arg) -> Arg;
+ensure_binary(Arg) when is_list(Arg) -> list_to_binary(Arg);
+ensure_binary(Arg) when is_integer(Arg) -> integer_to_binary(Arg).
 
 
 %%%-------------------------------------------------------------------
