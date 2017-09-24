@@ -56,3 +56,30 @@ get_column_crossroad(X, #crossroad{
         falling ->
             get_row_helper(X, Length * Width -1, -1, Width)
     end.
+
+
+
+get_cells_to_target(Xstart, Xstart, _) ->
+    [];
+
+get_cells_to_target(Xstart, Xtarget, #crossroad{
+    width = Width,
+    length = Length
+}) ->
+    {X1, Y1} = progress_ctx:id_to_position(Xstart, Width),
+    {X2, Y2} = progress_ctx:id_to_position(Xtarget, Width),
+    case Y1 == Y2 of
+        true ->
+            lists:foldl(fun(X, List) ->
+                    [Y1 * Width + X] ++ List
+                end, [], lists:seq(X1, X2));
+        false ->
+            case X1 == X2 of
+            true ->
+                lists:foldl(fun(Y, List) ->
+                        [Y * Width + X1] ++ List
+                    end, [], lists:seq(Y1, Y2));
+            false ->
+                erlang:error(not_implemented)
+            end
+    end.
