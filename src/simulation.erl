@@ -119,25 +119,38 @@ progress_xroad_row(Row, Roads, Crossroad) ->
 
 
 progress_cell_on_xroad_row(CellId, Roads, Crossroad) ->
-    #cell{ id = Id, car = Car#car{
+    #cell{ id = Id, car = Car = #car{
         velocity = Velocity,
         target_cell = Target
     }} = maps:get(CellId, Crossroad#crossroad.cells),
     CellWay = crossroad_helpers:get_cells_to_target(CellId, Target,Crossroad),
-    {_, LeftDistance, LastCellN} = progress_cell_on_xroad_row_helper(CellWay, Velocity, Crossroad),
-    case LeftDistance of
-        0 ->
-            {Roads, Crossroad#crossroad{cells =
-            maps:update(LastCellN, #cell{id = Id, car = Car}, Crossroad#crossroad.cells)}};
-        Value ->
-            case Roads of
-                undefined ->
-                    {_, Crossroad#crossroad{cells =
-                    maps:update(LastCellN, #cell{id = Id, car = Car}, Crossroad#crossroad.cells)}};
-                _ ->
-                    %% erlang
+    {Taken, LeftDistance, LastCellN} = progress_cell_on_xroad_row_helper(CellWay, Velocity, Crossroad),
+    case Taken of
+        true ->
+            {Roads, Crossroad};
+        false ->
+            UpdatedCrossroad = Crossroad#crossroad{
+                cells = maps:update(CellId, #cell{
+                    id = CellId,
+                    car = undefined
+                }, Crossroad#crossroad.cells)
+            },
+            case LeftDistance of
+                0 ->
+                    {Roads, UpdatedCrossroad#crossroad{cells =
+                    maps:update(LastCellN, #cell{id = Id, car = Car}, UpdatedCrossroad#crossroad.cells)}};
+                Value ->
+                    case Roads of
+                        undefined ->
+                            {_, UpdatedCrossroad#crossroad{cells =
+                            maps:update(LastCellN, #cell{id = Id, car = Car}, UpdatedCrossroad#crossroad.cells)}};
+                        _ ->
+                        %% erlang
+                    end
             end
     end.
+
+
 
 
 progress_cell_on_xroad_row_helper([], CurrDistance, _) ->
@@ -155,7 +168,7 @@ progress_cell_on_xroad_row_helper([N | Tail], CurrDistance, Crossroad) ->
                     {false, LeftDistance, LastCellN}
             end;
         _ ->
-            {true, _, _}
+            {true, 0, _}
     end.
 
 gen_xroad_lane_data_map(Roads, AdjRoads, XRoadId) ->

@@ -12,7 +12,7 @@
 -include("model.hrl").
 
 %% API
--export([lanes_data_compare/2, empty_lane_data/0, get_row_crossroad/3,get_column_crossroad/3]).
+-export([lanes_data_compare/2, empty_lane_data/0, get_row_crossroad/3,get_column_crossroad/3, get_cells_to_target/3, count_target_cell/3, get_begin_cell_number/4]).
 
 
 
@@ -85,11 +85,18 @@ get_cells_to_target(Xstart, Xtarget, #crossroad{
     end.
 
 count_target_cell(Rule, StartCellNo, Crossroad)->
-    erlang:error("Not impl").
+    .
 
 
 get_ord_number(RoadId, Crossroad) ->
-    .
+    maps:fold(fun(N, Road, _) ->
+        case Road#road.id == RoadId of
+            true ->
+                N;
+            false ->
+                init
+        end
+    end, init, Crossroad#crossroad.roads).
 
 get_begin_cell_number(LaneId, #road_fraction{
     no_lanes = NoLanes
