@@ -15,11 +15,9 @@
 
 -ifdef(TEST).
     %% below functions are exported only for tests
--export([build_graphs/1]).
+-export([build_graphs/1, build_crossroad_graphs/2, build_crossroad_graphs_and_simplify/2]).
 -endif.
 -include_lib("eunit/include/eunit.hrl").
-
-
 
 
 %%%-------------------------------------------------------------------
@@ -31,19 +29,24 @@
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
-initialize(_Nodes, Ways) ->
+initialize(Nodes, Ways) ->
   {BaseGraph, BaseTransposeGraph} = build_graphs(Ways),
-%%  io:format("~nBase:~n ~p", [BaseGraph]),
+  io:format("~nBase:~n ~p", [BaseGraph]),
   {Graph, TransposeGraph} = compress_osm_graph(BaseGraph, BaseTransposeGraph),
-%%  io:format("~nCompressed:~n ~p", [Graph]),
-  Graph2 = build_crossroad_graphs(Graph, TransposeGraph),
-%%  io:format("~nCrossroads:~n ~p", [Graph2]),
+  io:format("~nCompressed:~n ~p", [Graph]),
+  io:format("~nCompressedT:~n ~p", [TransposeGraph]),
+  %todo tutaj aktualizacja wayów o nowe waye
+  {Graph2, TransposeGraph2, Ways2} = update_ways(Graph, TransposeGraph, Ways),
+  io:format("~nGraph2:~n ~p", [Graph2]),
+  io:format("~nTransposeGraph2:~n ~p", [TransposeGraph2]),
+  io:format("~nWays2:~n ~p", [Ways2]),
+  XGraph = build_crossroad_graphs_and_simplify(Graph2, TransposeGraph2),
   initialize_road_map(#graphData{
-    node_data = _Nodes,
-    way_data = Ways,
-    graph = Graph,
-    x_graph = Graph2,
-    transposed_graph = TransposeGraph
+    node_data = Nodes,
+    way_data = Ways2,
+    graph = Graph2,
+    x_graph = XGraph,
+    transposed_graph = TransposeGraph2
   }).
 
 insert_car(Car, CellId, LaneId, FractionId, Side, RoadId,
@@ -132,8 +135,6 @@ dfs_build_crossroads([Head | Tail], GraphData, RoadMap, Visited)->
 %%% Builds adjacency list for each node.
 %%% @end
 %%%-------------------------------------------------------------------
-
-
 walk_node_graph(InputVisited, Node, GraphData) ->
   Visited = sets:add_element(Node, InputVisited),
   {NodeRoads, ChildrenVisited} = build_roads(maps:get(Node, GraphData#graphData.graph), Visited, GraphData, Node),
@@ -171,11 +172,131 @@ build_roads([NodeEdge| Tail], CurrVisited, GraphData, XNode) ->
         true ->
           {NodeRoad, NodeVisited} = initialize_road(CurrVisited, GraphData, XNode, NodeEdge),
           {TailRoad, TailVisited} = build_roads(Tail, NodeVisited, GraphData, XNode),
-          {maps:put(NodeEdge#edge.node, NodeRoad, TailRoad), TailVisited};
+          {maps:put(NodeEdge#edge.way_id, NodeRoad, TailRoad), TailVisited};
         false ->
           build_roads(Tail, CurrVisited, GraphData, XNode)
       end
   end.
+
+
+%%-------------------------------------------------------------------
+%% @private
+%% @doc
+%% WRITEME
+%% @end
+%%-------------------------------------------------------------------
+update_ways(CompressedGraph, TCompressedGraph, Ways) ->
+  {CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays} =
+    filter_unchanged_ways(CompressedGraph, TCompressedGraph, Ways),
+
+  io:format("
+  CompressedGraph1: ~p
+  CompressedGraphUnchanged1: ~p
+  TCompressedGraph1: ~p
+  TCompressedGraphUnchanged1: ~p
+  ChangedWays: ~p
+  UnchangedWays: ~p
+  ", [CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays]),
+  update_ways(CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays).
+
+filter_unchanged_ways(Graph, TGraph, Ways) ->
+  maps:fold(fun(WayId, Way,
+      {Graph0, GraphUnchangedWays0, TGraph0, TGraphUnchangedWays0, Ways0, UnchangedWays}
+  ) ->
+    Nodes = maps:get(<<"nodes">>, Way),
+    From = hd(Nodes),
+    To = lists:last(Nodes),
+    case is_oneway(Way) of
+      true ->
+        case edge_in_graph({From, To}, WayId, Graph0) of
+          true ->
+            Graph1 = delete_edge({From, To}, WayId, Graph0),
+            TGraph1 = delete_edge({To, From}, WayId, TGraph0),
+            Ways1 = maps:remove(WayId, Ways0),
+            GraphUnchangedWays1 = update_node(From, To, GraphUnchangedWays0, WayId),
+            TGraphUnchangedWays1 = update_node(To, From, TGraphUnchangedWays0, WayId),
+            UnchangedWays1 = UnchangedWays#{WayId => Way},
+            {Graph1, GraphUnchangedWays1, TGraph1, TGraphUnchangedWays1, Ways1, UnchangedWays1};
+          false ->
+            {Graph0, GraphUnchangedWays0, TGraph0, TGraphUnchangedWays0, Ways0, UnchangedWays}
+        end;
+      false ->
+        case edge_in_graph({From, To}, WayId, Graph0) of
+          true ->
+            Graph1 = delete_edge({From, To}, WayId, Graph0),
+            Graph2 = delete_edge({To, From}, WayId, Graph1),
+            GraphUnchangedWays1 = update_node(From, To, GraphUnchangedWays0, WayId),
+            GraphUnchangedWays2 = update_node(To, From, GraphUnchangedWays1, WayId),
+            TGraph1 = delete_edge({To, From}, WayId, TGraph0),
+            TGraph2 = delete_edge({From, To}, WayId, TGraph1),
+            TGraphUnchangedWays1 = update_node(To, From, TGraphUnchangedWays0, WayId),
+            TGraphUnchangedWays2 = update_node(From, To, TGraphUnchangedWays1, WayId),
+            Ways1 = maps:remove(WayId, Ways0),
+            UnchangedWays1 = UnchangedWays#{WayId => Way},
+            {Graph2, GraphUnchangedWays2, TGraph2, TGraphUnchangedWays2, Ways1, UnchangedWays1};
+          false ->
+            {Graph0, GraphUnchangedWays0, TGraph0, TGraphUnchangedWays0, Ways0, UnchangedWays}
+      end
+    end
+  end, {Graph, #{}, TGraph, #{}, Ways, #{}}, Ways).
+
+edge_in_graph({From, To}, WayId, Graph) ->
+  case maps:get(From, Graph, undefined) of
+    undefined ->
+      false;
+    Nodes ->
+      lists:member(#edge{way_id = WayId, node = To}, Nodes)
+  end.
+
+delete_edge({From, To}, WayId, Graph) ->
+  Edge = #edge{way_id = WayId, node = To},
+  maps:update_with(From, fun(Nodes) ->
+    Nodes -- [Edge]
+  end, Graph).
+
+update_ways(Graph, GraphUnchangedWays, TGraph, TGraphUnchangedWays, ChangedWays, UnchangedWays) ->
+  {NewGraph, NewTGraph, NewWays} = maps:fold(fun(From, Nodes, AccIn) ->
+    lists:foldl(fun(#edge{way_id = WayId, node = To}, {Graph0, TGraph0, ChangedWays0}) ->
+        Way = maps:get(WayId, ChangedWays),
+        Graph1 = delete_edge({From, To}, WayId, Graph0),
+        TGraph1 = delete_edge({To, From}, WayId, TGraph0),
+        NewWayId = new_way_id(From, To, WayId),
+        Graph2 = update_node(From, To, Graph1, NewWayId),
+        TGraph2 = update_node(To, From, TGraph1, NewWayId),
+        ChangedWays1 = ChangedWays0#{NewWayId => Way#{
+            <<"id">> => NewWayId,
+            <<"nodes">> => [From, To]
+        }},
+        {Graph2, TGraph2, ChangedWays1}
+    end, AccIn, Nodes)
+  end, {Graph, TGraph, ChangedWays}, Graph),
+    Ways1 = maps:merge(NewWays, UnchangedWays),
+    WaysToDelete = maps:keys(ChangedWays),
+    Ways2 = maps:filter(fun(WayId, _Way) ->
+        not lists:member(WayId, WaysToDelete)
+    end, Ways1),
+  {
+    merge(NewGraph, GraphUnchangedWays),
+    merge(NewTGraph, TGraphUnchangedWays),
+    Ways2
+  }.
+
+merge(Graph1, Graph2) ->
+    maps:fold(fun(From, Nodes, AccIn) ->
+        Nodes2 = maps:get(From, Graph2, []),
+        AccIn#{From => Nodes ++ Nodes2}
+    end, #{}, Graph1).
+
+new_way_id(From, To, WayId) when From =< To ->
+  Args = [ensure_binary(From), ensure_binary(To), ensure_binary(WayId)],
+  crypto:hash(md5, Args);
+new_way_id(From, To, WayId) ->
+  new_way_id(To, From, WayId).
+
+
+ensure_binary(Arg) when is_binary(Arg) -> Arg;
+ensure_binary(Arg) when is_list(Arg) -> list_to_binary(Arg);
+ensure_binary(Arg) when is_integer(Arg) -> integer_to_binary(Arg).
 
 
 %%%-------------------------------------------------------------------
@@ -228,7 +349,7 @@ initialize_road(CurrVisited, GraphData, XNode, StartEdge) ->
   end,
 
   Road = #road{
-    id = StartEdge#edge.node,
+    id = StartEdge#edge.way_id,
     begin_crossroad = XNode,
     end_crossroad = EndXNode,
     side_rising = RisingFractions,
@@ -392,16 +513,16 @@ get_edge_info(GraphData, WayId, PrevNode, CurrNode) ->
   Way = maps:get(WayId, GraphData#graphData.way_data),
   Orientation = check_orientation(Way, PrevNode, CurrNode),
   Tags = maps:get(<<"tags">>, Way, #{}),
-  case maps:get(<<"lanes:", Orientation/binary>>, Tags, none) of
+  Lanes = case maps:get(<<"lanes:", Orientation/binary>>, Tags, none) of
     none ->
       case maps:get(<<"oneway">>, Tags, <<"no">>) of
         <<"no">> ->
-          Lanes = binary_to_integer(maps:get(<<"lanes">>, Tags, <<"2">>)) div 2;
+          binary_to_integer(maps:get(<<"lanes">>, Tags, <<"2">>)) div 2;
         <<"yes">> ->
-          Lanes = binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>))
+          binary_to_integer(maps:get(<<"lanes">>, Tags, <<"1">>))
       end;
     Value ->
-      Lanes = binary_to_integer(Value)
+      binary_to_integer(Value)
   end,
   case maps:get(<<"oneway">>, Tags, <<"no">>) of
     <<"no">> ->
@@ -430,20 +551,21 @@ initialize_fraction(GraphData, BeginNode, Edge, FractionId) ->
   WayLength = count_edge_length(GraphData, BeginNode, Edge#edge.node),
   Lanes = build_lanes(WayLength, NoLanes, 0),
 
-    case TurnInfo of
-        none ->
-            EndTurnInfo = #{};
-        Val ->
-            EndTurnInfo = Val
-    end,
+  case TurnInfo of
+      none ->
+          EndTurnInfo = #{};
+      Val ->
+          EndTurnInfo = Val
+  end,
 
-    #road_fraction{
-        id = FractionId,
-        no_lanes = NoLanes,
-        velocity_limit = MaxSpeed,
-        lanes =  Lanes,
-        special_rules = EndTurnInfo
-    }.
+
+  #road_fraction{
+    id = FractionId,
+    no_lanes = NoLanes,
+    velocity_limit = MaxSpeed,
+    lanes =  Lanes,
+    special_rules = EndTurnInfo
+  }.
 
 build_lanes(_, NoLanes, _) when NoLanes == 0 ->
   #{};
@@ -744,12 +866,17 @@ is_oneway(_) ->
 %%% WRITEME
 %%% @end
 %%%-------------------------------------------------------------------
+build_crossroad_graphs_and_simplify(Graph, TransposedGraph) ->
+  case build_crossroad_graphs(Graph, TransposedGraph) of
+    {Graph, TransposedGraph} -> simplify_crossroad_graph(Graph);
+    {Graph2, TransposedGraph2} -> build_crossroad_graphs_and_simplify(Graph2, TransposedGraph2)
+  end.
 
 build_crossroad_graphs(Graph, TransposedGraph) ->
-  {XGraph, _} = maps:fold(fun (V, _, {CurrGraph, CurrTransposedGraph}) ->
-    filter_vertices(V, CurrTransposedGraph, CurrGraph)
+    {XGraph, TransposedXGraph} = maps:fold(fun (V, _, {CurrGraph, CurrTransposedGraph}) ->
+        filter_vertices(V, CurrTransposedGraph, CurrGraph)
     end, {Graph, TransposedGraph}, Graph),
-  simplify_crossroad_graph(XGraph).
+  {XGraph, TransposedXGraph}.
 
 
 simplify_crossroad_graph(Graph) ->
@@ -760,11 +887,11 @@ simplify_crossroad_graph(Graph) ->
           CurrList ++ [Node]
         end, [], AdjList
       ),
-      maps:put(V, NewAdjList, CurrGraph)
+      maps:put(V, lists:usort(NewAdjList), CurrGraph)
     end, #{}, Graph
   ).
 
-
+%% usuwa zbedne wierzcholki A -> B -> C => A -> C
 filter_vertices(V, CurrTransposedGraph, CurrGraph) ->
   AdjList = maps:get(V, CurrGraph),
   TransposedAdjList = maps:get(V, CurrTransposedGraph),
@@ -789,9 +916,9 @@ reconnect_vertices(Node1, Node2, RemovedNode, CurrGraph, CurrTransposedGraph) ->
 
 
 update_both_graphs(NodeX, RemovedNode, NewNode, CurrGraph, CurrTransposedGraph) ->
-  RegAdjList = get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph),
+  RegularAdjList = get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph),
   TrnAdjList = get_updated_adj(NodeX, RemovedNode, NewNode, CurrTransposedGraph),
-  {maps:update(NodeX, RegAdjList, CurrGraph),
+  {maps:update(NodeX, RegularAdjList, CurrGraph),
     maps:update(NodeX, TrnAdjList, CurrTransposedGraph)}.
 
 get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph) ->
@@ -801,6 +928,8 @@ get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph) ->
       case Node of
         RemovedNode ->
           CurrList ++ [#edge{node = NewNode, way_id = WayId}];
+        NodeX ->
+          CurrList;
         RegNode ->
           CurrList ++ [#edge{node = RegNode, way_id = WayId}]
       end
@@ -808,6 +937,8 @@ get_updated_adj(NodeX, RemovedNode, NewNode, CurrGraph) ->
   ),
   NewAdjList.
 
+% usuwa wierzchołki, ktore znajduja sie na srodku drogi i nie sa skrzyzowaniami
+% maja dwoch sasiadow, polączonych droga o tym samym wayid
 compress_osm_graph(Graph, TransposedGraph) ->
   maps:fold(
     fun (V, _, {CurrGraph, CurrTransGraph}) ->
@@ -838,51 +969,29 @@ check_vertex_redundancy(V, Graph, TransGraph) ->
       {Graph, TransGraph}
   end.
 
-%%add_road_description_nodes(Graph, TransGraph, XGraph)->
-%%{NewGraph, NewTransGraph, _} = maps:fold(
-%%fun(V, _, {CurrGraph, CurrTransGraph, CurrId}) ->
-%%case maps:is_key(V, CurrGraph) of
-%%true ->
-%%r_description_nodes(maps:get(V, CurrGraph),V, XGraph, CurrGraph, CurrTransGraph, CurrId);
-%%        false ->
-%%          {CurrGraph, CurrTransGraph, CurrId}
-%%      end
-%%    end, {Graph, TransGraph, 1}, Graph
-    %%),
-    %%  {NewGraph, NewTransGraph}.
+%%update_repeated_edges(Graph, TransGraph, XGraph) ->
+%%  maps:fold(
+%%    fun (V, _, {EdgeSet, }) ->
+%%      AdjList = maps:get(V, Graph),
+%%      lists:foldl(
 %%
-%%adj_for_node_between(Node1, Node2, CurrGraph) ->
-%%  lists:foldl(
-%%    fun (#edge{way_id = WayId, node =V}, CurrList)->
-    %%      caseVof
-    %%        Node1 ->
-%%          CurrList ++ [#edge{way_id = WayId, node = Node1}];
-%%        Node2 ->
-%%          CurrList ++ [#edge{way_id = WayId, node = Node2}];
-%%        _ ->
-%%          CurrList
-%%      end
-%%    end, [], maps:get(Node1, CurrGraph) ++ maps:get(Node2, CurrGraph)
+%%      )
+%%    end, {sets:new()}, XGraph
 %%  ).
+
+%%remove_double_edges(AdjList, Graph, TransGraph, Id, EdgeSet) ->
+%%  lists:foldl(
+%%    fun(#edge{node = Node, way_id = WayId}, {CurrGraph, CurrTransGraph, CurrId, CurrEdgeSet})->
+%%      case sets:is_element(WayId, CurrEdgeSet) of
+%%        true->
+%%          ;
+%%        false ->
+%%
+%%      end
+%%    end, {Graph, TransGraph, Id, EdgeSet}, AdjList
+%%  )
+%%
+%%update_edge_id(Node1, Node2, NewEdgeId, OldEdgeId, Graph, TransGraph)->
 %%
 %%
-%%add_description_node(Node1, Node2, CurrGraph, CurrTransGraph, CurrId)->
-%%  {Upd1Graph, Upd1TrGraph} = update_both_graphs(Node1, Node2, CurrId, CurrGraph, CurrTransGraph),
-%%  {Upd2Graph, Upd2TrGraph} = update_both_graphs(Node2, Node1, CurrId, Upd1Graph, Upd1TrGraph),
-%%  {maps:put(CurrId, adj_for_node_between(Node1, Node2, CurrGraph),Upd2Graph),
-%%    maps:put(CurrId, adj_for_node_between(Node1, Node2, CurrTransGraph),Upd2TrGraph), CurrId + 1}.
-%%
-%%
-%%r_description_nodes([], _, _, CurrGraph, CurrTransGraph, CurrId) ->
-%%  {CurrGraph, CurrTransGraph, CurrId};
-%%
-%%
-%%r_description_nodes([Edge | Tail], CurrV, XGraph, CurrGraph, CurrTransGraph, CurrId) ->
-%%  Head = Edge#edge.node,
-%%  case maps:is_key(Head, XGraph) of
-%%    true ->
-%%      {UpdatedGraph, UpdatedTransGraph, UpdatedId} = add_description_node(CurrV, Head, CurrGraph, CurrTransGraph, CurrId),
-%%      r_description_nodes(Tail, CurrV, XGraph, UpdatedGraph, UpdatedTransGraph, UpdatedId);
-%%    false ->
-%%      r_description_nodes(Tail, CurrV, XGraph, CurrGraph, CurrTransGraph, CurrId)
-%%  end.
+%%  {}.
