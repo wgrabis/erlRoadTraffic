@@ -511,16 +511,11 @@ move_car_to_xroad(Car = #car{velocity = Velocity}, Ctx) ->
             progress_ctx:set_xroad(ProgressedCrossroad, Ctx)
     end.
 
-choose_turn_rule([]) ->
-    none;
 
-choose_turn_rule([Rule |Tail]) ->
-    case choose_turn_rule(Tail) of
-        none ->
-            Rule;
-        Val ->
-            Val
-    end.
+choose_turn_rule(Rules) ->
+    Rules2 = Rules -- [?LEFT_RULE], %todo delete when turn left is implemented
+    Index = random:uniform(length(Rules2)),
+    lists:nth(Index, Rules2).
 
 
 get_begin_cell(Ctx, Crossroad) ->
