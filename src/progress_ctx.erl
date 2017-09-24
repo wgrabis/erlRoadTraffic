@@ -24,7 +24,7 @@
     get_lane_ids/1, set_lane_id/2, count_empty_cells/1, get_fractions_no/1, update_fractions/2,
     get_column_crossroad/2, get_row_crossroad/2, get_cell_crossroad/3, set_cell_crossroad/4,
     set_column_crossroad/3, set_row_crossroad/3, id_to_position/2
-]).
+    , is_empty/1, set_car/2, update_cell/2, update_lane/2, set_xroad/2]).
 
 -record(progress_ctx, {
     cell_id :: id(),
@@ -59,6 +59,32 @@ init(LaneId, FractionId, RoadId, EndCrossRoad, RoadFractions, NoFractions) ->
         no_fractions = NoFractions
 %%        lane_extension_cells = count_lane_extension(LaneId, FractionId, RoadId)
     }.
+
+is_empty(Ctx) ->
+    #cell{car = Car} = get_cell(Ctx),
+    case Car of
+        undefined  -> true;
+        _ -> false
+    end.
+
+set_xroad(Crossroad, Ctx) ->
+    #progress_ctx{crossroad = Crossroad}.
+
+set_car(Car, Ctx) ->
+    Cell = get_cell(Ctx),
+    update_cell(Cell#cell{car = Car}, Ctx).
+
+update_cell(Cell = #cell{id = CellId}, Ctx) ->
+    Lane = #lane{cells = Cells} = get_lane(Ctx),
+    NewCells = maps:put(CellId, Cell, Cells),
+    NewLane = Lane#lane{cells = NewCells},
+    update_lane(NewLane, Ctx).
+
+update_lane(Lane = #lane{id = LaneId}, Ctx) ->
+    Fraction  = #road_fraction{lanes = Lanes} = get_fraction(Ctx),
+    NewLanes = Lanes#{LaneId => Lane},
+    NewFraction = Fraction#road_fraction{lanes = NewLanes},
+    update_fraction(NewFraction, Ctx).
 
 set_cell_id(CellId, Ctx) ->
     Ctx#progress_ctx{cell_id = CellId}.
@@ -262,6 +288,5 @@ set_cell_crossroad(NewCell, X, Y, Crossroad = #crossroad{
 
 id_to_position(N, Width) ->
     {N rem Width, N div Width}.
-
 
 

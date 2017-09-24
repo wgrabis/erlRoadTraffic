@@ -12,7 +12,7 @@
 -include("model.hrl").
 
 %% API
--export([lanes_data_compare/2, empty_lane_data/0, get_row_crossroad/3,get_column_crossroad/3, get_cells_to_target/3, count_target_cell/3, get_begin_cell_number/4]).
+-export([lanes_data_compare/2, empty_lane_data/0, get_row_crossroad/3,get_column_crossroad/3, get_cells_to_target/3, count_target_cell/3, get_begin_cell_number/4, get_road_id/2]).
 
 
 
@@ -115,3 +115,7 @@ get_begin_cell_number(LaneId, #road_fraction{
         3 ->
             LaneId
     end.
+
+get_target(CellId, Crossroad) ->
+    %todo count road_id
+    0.
