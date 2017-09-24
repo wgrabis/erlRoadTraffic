@@ -86,3 +86,25 @@ get_cells_to_target(Xstart, Xtarget, #crossroad{
 
 count_target_cell(Rule, StartCellNo, Crossroad)->
     erlang:error("Not impl").
+
+
+get_ord_number(RoadId, Crossroad) ->
+    .
+
+get_begin_cell_number(LaneId, #road_fraction{
+    no_lanes = NoLanes
+}, RoadId, Crossroad = #crossroad{
+    width = Width,
+    length = Length
+}) ->
+    %% this can fuck up based on lane id numeration
+    case crossroad_helpers:get_ord_number(RoadId, Crossroad) of
+        0 ->
+            (Length - NoLanes + LaneId) * Width;
+        1 ->
+            (Width - NoLanes + LaneId) + (Length - 1) * Width;
+        2 ->
+            LaneId * Width;
+        3 ->
+            LaneId
+    end.

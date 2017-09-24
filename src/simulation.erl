@@ -445,7 +445,7 @@ move_car_to_xroad(Car = #car{velocity = Velocity}, Ctx) ->
     Crossroad = progress_ctx:get_crossroad(Ctx),
     Rules = progress_ctx:get_crossroad_lane_rules(Ctx),
     TurnRule = choose_turn_rule(Rules),
-    case get_begin_cell() of
+    case get_begin_cell(Ctx, Crossroad) of
         none ->
             Ctx;
         BeginCell ->
@@ -475,5 +475,19 @@ choose_turn_rule([Rule |Tail]) ->
             Val
     end.
 
-get_begin_cell() ->
-    .
+
+get_begin_cell(Ctx, Crossroad) ->
+    LaneId = progress_ctx:get_lane(Ctx),
+    Fraction = progress_ctx:get_fraction(Ctx),
+    RoadId = progress_ctx:get_road_id(Ctx),
+    CellNo = crossroad_helpers:get_begin_cell_number(LaneId, Fraction, RoadId, Crossroad),
+    #cell{
+        car = CurrCar
+    } = maps:get(CellNo, Crossroad#crossroad.cells),
+    case CurrCar of
+        undefined ->
+            CellNo;
+        _ ->
+            none
+    end.
+

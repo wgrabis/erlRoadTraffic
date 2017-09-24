@@ -154,6 +154,11 @@ get_empty_cells_number(Ctx = #progress_ctx{
             0
     end.
 
+get_road_id(#progress_ctx{
+    road_id = RoadId
+}) ->
+    RoadId.
+
 count_empty_cells(Ctx = #progress_ctx{
     road_id = RoadId,
     crossroad = XRoad =
@@ -257,5 +262,6 @@ set_cell_crossroad(NewCell, X, Y, Crossroad = #crossroad{
 
 id_to_position(N, Width) ->
     {N rem Width, N div Width}.
+
 
 
