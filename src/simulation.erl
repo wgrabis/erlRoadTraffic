@@ -147,7 +147,7 @@ progress_cell_on_xroad_row(CellId, Roads, Crossroad) ->
                             cells = maps:update(LastCellN, #cell{id = LastCellN, car = Car}, Crossroad#crossroad.cells)}
                         };
                     _ ->
-                        {RoadId, LaneId} = crossroad_helpers:get_target(LastCellN, Crossroad),
+                        {RoadId, LaneId} = crossroad_helpers:get_target(LastCellN, Crossroad, Roads),
                         Road = #road{
                             begin_crossroad = BeginXroad,
                             end_crossroad = EndXroad,

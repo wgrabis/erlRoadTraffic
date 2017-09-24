@@ -10,9 +10,10 @@
 -author("wg").
 -include("progress.hrl").
 -include("model.hrl").
+-include("constants.hrl").
 
 %% API
--export([lanes_data_compare/2, empty_lane_data/0, get_row_crossroad/3,get_column_crossroad/3, get_cells_to_target/3, count_target_cell/3, get_begin_cell_number/4, get_road_id/2]).
+-export([lanes_data_compare/2, empty_lane_data/0, get_row_crossroad/3,get_column_crossroad/3, get_cells_to_target/3, count_target_cell/3, get_begin_cell_number/4, get_target/3]).
 
 
 
@@ -84,8 +85,87 @@ get_cells_to_target(Xstart, Xtarget, #crossroad{
             end
     end.
 
-count_target_cell(Rule, StartCellNo, Crossroad)->
-    .
+
+get_in_edge_number(CellNo, #crossroad{
+    width = Width,
+    length = Length
+}) ->
+    {X1, Y1} = progress_ctx:id_to_position(CellNo, Width),
+    case X1 + 1 of
+        1 ->
+            case Y1 of
+                0 ->
+                    1;
+                _ ->
+                    0
+            end;
+        Width ->
+            case Y1 + 1 of
+                Length ->
+                    3;
+                _ ->
+                    2
+            end;
+        _ ->
+            case Y1 + 1 of
+                1 ->
+                    1;
+                Length ->
+                    3
+            end
+    end.
+
+get_out_edge_number(CellNo, #crossroad{
+    width = Width,
+    length = Length
+}) ->
+    {X1, Y1} = progress_ctx:id_to_position(CellNo, Width),
+    case X1 + 1 of
+        1 ->
+            case Y1 + 1 of
+                Length ->
+                    3;
+                _ ->
+                    0
+            end;
+        Width ->
+            case Y1 of
+                0 ->
+                    1;
+                _ ->
+                    2
+            end;
+        _ ->
+            case Y1 + 1 of
+                1 ->
+                    1;
+                Length ->
+                    3
+            end
+    end.
+
+count_target_cell(Rule, StartCellNo, Crossroad = #crossroad{
+    width = Width,
+    length = Length
+})->
+    {X1, Y1} = progress_ctx:id_to_position(StartCellNo, Width),
+    case Rule of
+        ?LEFT_RULE ->
+            erlang:error(not_implemented);
+        ?RIGHT_RULE ->
+            StartCellNo;
+        ?STRAIGHT_RULE ->
+            case get_in_edge_number(StartCellNo, Crossroad) of
+                0 ->
+                    Y1 * Width + Width - 1;
+                1 ->
+                    X1 + (Length - 1) * Width;
+                2 ->
+                    Y1 * Width;
+                3 ->
+                    X1
+            end
+    end.
 
 
 get_ord_number(RoadId, Crossroad) ->
@@ -116,6 +196,34 @@ get_begin_cell_number(LaneId, #road_fraction{
             LaneId
     end.
 
-get_target(CellId, Crossroad) ->
-    %todo count road_id
-    0.
+get_middle(Side, Roads, #crossroad{
+    roads = RoadIds,
+    id = XRoadId
+}) ->
+    Road = maps:get(maps:get(Side, RoadIds), Roads),
+    case Road#road.begin_crossroad of
+        XRoadId ->
+            (maps:get(0, Road#road.side_rising))#road_fraction.no_lanes;
+        _ ->
+            (maps:get(0, Road#road.side_falling))#road_fraction.no_lanes
+    end.
+
+
+get_target(CellId, Crossroad = #crossroad{
+    width = Width,
+    roads = Roads
+}, RoadsData) ->
+    {X1, Y1} = progress_ctx:id_to_position(CellId, Width),
+    OutputEdge = get_out_edge_number(CellId, Crossroad),
+    RoadId = maps:get(OutputEdge, Roads),
+    case OutputEdge of
+        0 ->
+            LaneId = get_middle(0, RoadsData, Crossroad) - Y1;
+        1 ->
+            LaneId = get_middle(1, RoadsData, Crossroad) - X1;
+        2 ->
+            LaneId = Y1 - get_middle(2, RoadsData, Crossroad);
+        3 ->
+            LaneId = X1 - get_middle(3, RoadsData, Crossroad)
+    end,
+    {RoadId, LaneId}.
