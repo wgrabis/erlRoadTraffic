@@ -13,9 +13,15 @@
 -include("constants.hrl").
 
 %% API
--export([lanes_data_compare/2, empty_lane_data/0, get_row_crossroad/3,get_column_crossroad/3, get_cells_to_target/3, count_target_cell/3, get_begin_cell_number/4, get_target/3]).
 
-
+-export([lanes_data_compare/2,
+    empty_lane_data/0,
+    get_row_crossroad/3,
+    get_column_crossroad/3,
+    get_cells_to_target/3,
+    count_target_cell/3,
+    get_begin_cell_number/4,
+    get_target/3]).
 
 
 lanes_data_compare(ALanes = #lanes_data{in_no_lanes = AInLanes, out_no_lanes = AOutLanes},
@@ -84,7 +90,6 @@ get_cells_to_target(Xstart, Xtarget, #crossroad{
                 erlang:error(not_implemented)
             end
     end.
-
 
 get_in_edge_number(CellNo, #crossroad{
     width = Width,

@@ -188,8 +188,8 @@ progress_cell_on_xroad_row(CellId, Roads, Crossroad) ->
 
 
 
-progress_cell_on_xroad_row_helper([], CurrDistance, _) ->
-    {_, CurrDistance, _};
+progress_cell_on_xroad_row_helper([], CurrDistance, Crossroad) ->
+    {true, CurrDistance, undefined};
 
 progress_cell_on_xroad_row_helper([N | Tail], CurrDistance, Crossroad) ->
     CurrCell = maps:get(N,Crossroad#crossroad.cells),
@@ -216,8 +216,8 @@ gen_xroad_lane_data_map(Roads, AdjRoads, XRoadId) ->
               side_rising = RisingFractions,
               no_fractions = NoFractions
           } = maps:get(RoadId, Roads),
-          NoLanesRising = maps:get(0, RisingFractions)#road_fraction.no_lanes,
-          NoLanesFalling = maps:get(NoFractions - 1, FallingFractions)#road_fraction.no_lanes,
+          NoLanesRising = (maps:get(0, RisingFractions))#road_fraction.no_lanes,
+          NoLanesFalling = (maps:get(NoFractions - 1, FallingFractions))#road_fraction.no_lanes,
           case XRoadId of
               BeginX ->
                   maps:put(Num, #lanes_data{in_no_lanes = NoLanesFalling, out_no_lanes = NoLanesRising}, CurrLaneMap);
@@ -511,16 +511,11 @@ move_car_to_xroad(Car = #car{velocity = Velocity}, Ctx) ->
             progress_ctx:set_xroad(ProgressedCrossroad, Ctx)
     end.
 
-choose_turn_rule([]) ->
-    none;
 
-choose_turn_rule([Rule |Tail]) ->
-    case choose_turn_rule(Tail) of
-        none ->
-            Rule;
-        Val ->
-            Val
-    end.
+choose_turn_rule(Rules) ->
+    Rules2 = Rules -- [?LEFT_RULE], %todo delete when turn left is implemented
+    Index = random:uniform(length(Rules2)),
+    lists:nth(Index, Rules2).
 
 
 get_begin_cell(Ctx, Crossroad) ->
