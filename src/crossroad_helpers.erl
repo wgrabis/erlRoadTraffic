@@ -83,3 +83,6 @@ get_cells_to_target(Xstart, Xtarget, #crossroad{
                 erlang:error(not_implemented)
             end
     end.
+
+count_target_cell(Rule, StartCellNo, Crossroad)->
+    erlang:error("Not impl").

@@ -173,6 +173,16 @@ count_empty_cells(Ctx = #progress_ctx{
 %%            end, #{}, lists:seq(0, Width - 1))
 %%    end.
 
+get_crossroad_lane_rules(Ctx = #progress_ctx{
+    fraction_id = FractionId,
+    road_fractions = Fractions
+}) ->
+    #road_fraction{
+        special_rules = Rules
+    } = maps:get(FractionId, Fractions),
+    Rules.
+
+%% Crossroad
 
 get_row_helper(_, _, MaxPos, MaxPos) ->
     #{};

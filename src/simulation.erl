@@ -436,6 +436,38 @@ way_is_free(Velocity, EmptyCellsBefore) ->
     EmptyCellsBefore * ?CAR_SIZE >= Velocity.
 
 
-move_car_to_xroad(UpdatedCar = #car{velocity = Velocity}, Ctx) ->
-    %% need fraction
-    Ctx.
+move_car_to_xroad(Car = #car{velocity = Velocity}, Ctx) ->
+    Crossroad = progress_ctx:get_crossroad(Ctx),
+    Rules = progress_ctx:get_crossroad_lane_rules(Ctx),
+    TurnRule = choose_turn_rule(Rules),
+    case get_begin_cell() of
+        none ->
+            Ctx;
+        BeginCell ->
+            UpdatedCar = Car#car{
+                velocity = Velocity - 1,
+                target_cell = crossroad_helpers:count_target_cell(TurnRule, BeginCell, Crossroad)
+            },
+            UpdatedCrossroad = Crossroad#crossroad{
+                cells = maps:update(
+                    BeginCell,
+                    BeginCell#cell{car = UpdatedCar},
+                    Crossroad#crossroad.cells)
+            },
+            progress_cell_on_xroad_row(BeginCell, _, UpdatedCrossroad),
+            %% update and get roads
+            Ctx
+    end.
+
+choose_turn_rule([]) ->
+    none;
+
+choose_turn_rule([Rule |Tail]) ->
+    case choose_turn_rule(Tail) of
+        none ->
+            Rule;
+        Val ->
+            Val
+    end.
+
+get_begin_cell()
