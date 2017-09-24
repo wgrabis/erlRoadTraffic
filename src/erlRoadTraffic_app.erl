@@ -44,7 +44,7 @@ start(_StartType, _StartArgs) ->
 %%    try
 
     Car = #car{id = 1, velocity = 2},
-    RoadMap1 = #road_map{roads = Roads1} = model:insert_car(Car, 0, 0, 0, rising, RoadId, RoadMap),
+    RoadMap1 = #road_map{roads = Roads1} = model:insert_car(Car, 0, 0, 0, falling, RoadId, RoadMap),
     Road1 = #road{side_rising = SideRising1} = maps:get(RoadId, Roads1),
 
     io:format("#################################RESULT#####################################~n"),
@@ -58,7 +58,7 @@ start(_StartType, _StartArgs) ->
         io:format("~p~~n", [SideRising2]),
         io:format("#################################RESULT#####################################~n"),
         RoadMap2
-    end, RoadMap, lists:seq(1, Tours)).
+    end, RoadMap1, lists:seq(1, Tours)).
 
 %%--------------------------------------------------------------------
 stop(_State) ->

@@ -1,0 +1,132 @@
+{
+  "elements": [
+    {
+      "type": "way",
+      "id": 1,
+      "nodes": [
+        11,
+        12,
+        13
+      ],
+      "tags": {
+      }
+    },
+    {
+      "type": "way",
+      "id": 2,
+      "nodes": [
+        13,
+        14,
+        15,
+        19
+      ]
+    },
+    {
+      "type": "way",
+      "id": 3,
+      "nodes": [
+        13,
+        16,
+        17
+      ]
+    },
+    {
+      "type": "way",
+      "id": 4,
+      "nodes": [
+        17,
+        111,
+        112
+      ]
+    },
+    {
+      "type": "way",
+      "id": 5,
+      "nodes": [
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "type": "way",
+      "id": 6,
+      "nodes": [
+        19,
+        110
+      ]
+    },
+    {
+      "type": "node",
+      "id": 11,
+      "lat": 2,
+      "lon": 1
+    },
+    {
+      "type": "node",
+      "id": 12,
+      "lat": 1,
+      "lon": 2
+    },
+    {
+      "type": "node",
+      "id": 13,
+      "lat": 1,
+      "lon": 3
+    },
+    {
+      "type": "node",
+      "id": 14,
+      "lat": 1,
+      "lon": 4
+    },
+    {
+      "type": "node",
+      "id": 15,
+      "lat": 1,
+      "lon": 5
+    },
+    {
+      "type": "node",
+      "id": 16,
+      "lat": 2,
+      "lon": 3
+    },
+    {
+      "type": "node",
+      "id": 17,
+      "lat": 3,
+      "lon": 3
+    },
+    {
+      "type": "node",
+      "id": 18,
+      "lat": 3,
+      "lon": 4
+    },
+    {
+      "type": "node",
+      "id": 19,
+      "lat": 3,
+      "lon": 5
+    },
+    {
+      "type": "node",
+      "id": 110,
+      "lat": 4,
+      "lon": 6
+    },
+    {
+      "type": "node",
+      "id": 111,
+      "lat": 4,
+      "lon": 3
+    },
+    {
+      "type": "node",
+      "id": 112,
+      "lat": 5,
+      "lon": 3
+    }
+  ]
+}

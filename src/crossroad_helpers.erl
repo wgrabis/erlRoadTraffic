@@ -26,12 +26,18 @@
 
 lanes_data_compare(ALanes = #lanes_data{in_no_lanes = AInLanes, out_no_lanes = AOutLanes},
     BLanes = #lanes_data{in_no_lanes = BInLanes, out_no_lanes = BOutLanes}) ->
-    case AInLanes + AOutLanes > BInLanes + BOutLanes of
+    case (((AInLanes + AOutLanes) == (BInLanes + BOutLanes)) and ((BInLanes + BOutLanes) == 0)) of
         true ->
-            {ALanes, 0};
+            {empty_lane_data(), 2};
         false ->
-            {BLanes, 1}
+            case AInLanes + AOutLanes > BInLanes + BOutLanes of
+                true ->
+                    {ALanes, 0};
+                false ->
+                    {BLanes, 1}
+            end
     end.
+
 
 empty_lane_data() ->
     #lanes_data{in_no_lanes = 0, out_no_lanes = 0}.
@@ -61,7 +67,7 @@ get_column_crossroad(X, #crossroad{
         rising ->
             get_row_helper(X, 0, Length * Width, Width);
         falling ->
-            get_row_helper(X, Length * Width -1, -1, Width)
+            get_row_helper(X, (Length-1) * Width, -Width, -Width)
     end.
 
 
@@ -80,6 +86,7 @@ get_cells_to_target(Xstart, Xtarget, #crossroad{
             lists:foldl(fun(X, List) ->
                     [Y1 * Width + X] ++ List
                 end, [], lists:seq(X1, X2));
+        %%todo kuba fix -- important
         false ->
             case X1 == X2 of
             true ->
@@ -100,23 +107,23 @@ get_in_edge_number(CellNo, #crossroad{
         1 ->
             case Y1 of
                 0 ->
-                    1;
+                    0;
                 _ ->
-                    0
+                    3
             end;
         Width ->
             case Y1 + 1 of
                 Length ->
-                    3;
+                    2;
                 _ ->
-                    2
+                    1
             end;
         _ ->
             case Y1 + 1 of
                 1 ->
-                    1;
+                    0;
                 Length ->
-                    3
+                    2
             end
     end.
 
@@ -129,23 +136,23 @@ get_out_edge_number(CellNo, #crossroad{
         1 ->
             case Y1 + 1 of
                 Length ->
-                    3;
+                    2;
                 _ ->
-                    0
+                    3
             end;
         Width ->
             case Y1 of
                 0 ->
-                    1;
+                    0;
                 _ ->
-                    2
+                    1
             end;
         _ ->
             case Y1 + 1 of
                 1 ->
-                    1;
+                    0;
                 Length ->
-                    3
+                    2
             end
     end.
 
@@ -161,13 +168,13 @@ count_target_cell(Rule, StartCellNo, Crossroad = #crossroad{
             StartCellNo;
         ?STRAIGHT_RULE ->
             case get_in_edge_number(StartCellNo, Crossroad) of
-                0 ->
-                    Y1 * Width + Width - 1;
-                1 ->
-                    X1 + (Length - 1) * Width;
-                2 ->
-                    Y1 * Width;
                 3 ->
+                    Y1 * Width + Width - 1;
+                2 ->
+                    X1 + (Length - 1) * Width;
+                1 ->
+                    Y1 * Width;
+                0 ->
                     X1
             end
     end.
@@ -191,13 +198,13 @@ get_begin_cell_number(LaneId, #road_fraction{
 }) ->
     %% this can fuck up based on lane id numeration
     case crossroad_helpers:get_ord_number(RoadId, Crossroad) of
-        0 ->
-            (Length - NoLanes + LaneId) * Width;
-        1 ->
-            (Width - NoLanes + LaneId) + (Length - 1) * Width;
-        2 ->
-            LaneId * Width;
         3 ->
+            (Length - NoLanes + LaneId) * Width;
+        0 ->
+            (Width - NoLanes + LaneId) + (Length - 1) * Width;
+        1 ->
+            LaneId * Width;
+        2 ->
             LaneId
     end.
 
@@ -222,13 +229,13 @@ get_target(CellId, Crossroad = #crossroad{
     OutputEdge = get_out_edge_number(CellId, Crossroad),
     RoadId = maps:get(OutputEdge, Roads),
     case OutputEdge of
-        0 ->
-            LaneId = get_middle(0, RoadsData, Crossroad) - Y1;
-        1 ->
-            LaneId = get_middle(1, RoadsData, Crossroad) - X1;
-        2 ->
-            LaneId = Y1 - get_middle(2, RoadsData, Crossroad);
         3 ->
+            LaneId = get_middle(0, RoadsData, Crossroad) - Y1;
+        0 ->
+            LaneId = get_middle(1, RoadsData, Crossroad) - X1;
+        1 ->
+            LaneId = Y1 - get_middle(2, RoadsData, Crossroad);
+        2 ->
             LaneId = X1 - get_middle(3, RoadsData, Crossroad)
     end,
     {RoadId, LaneId}.

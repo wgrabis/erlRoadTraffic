@@ -38,6 +38,7 @@ simulate(#road_map{roads=Roads, crossroads=Crossroads}, Tour) ->
 %%%-------------------------------------------------------------------
 progress_cars_on_xroads(Roads, Crossroads, Timestamp) ->
     maps:fold(fun(N, XRoad, {CurrRoads, CurrCrossroads}) ->
+        io:format("CX:~p~n", [N]),
         {UpdatedRoads, UpdatedCrossroad} = progress_cars_on_xroad(CurrRoads, XRoad, Timestamp),
         {UpdatedRoads, maps:update(N, UpdatedCrossroad, CurrCrossroads)}
     end,{Roads, Crossroads}, Crossroads).
@@ -64,7 +65,7 @@ progress_cars_on_xroad(Roads, Crossroad = #crossroad{
 
 progress_cars_on_xroad_vertical(Roads, Crossroad, CrossRoadData) ->
     {#lanes_data{in_no_lanes = In, out_no_lanes = Out}, Which} = crossroad_helpers:lanes_data_compare(
-        maps:get(<<1>>, CrossRoadData, crossroad_helpers:empty_lane_data()), maps:get(<<3>>, CrossRoadData,crossroad_helpers:empty_lane_data())),
+        maps:get(0, CrossRoadData, crossroad_helpers:empty_lane_data()), maps:get(2, CrossRoadData,crossroad_helpers:empty_lane_data())),
     case Which of
         0 ->
             InLanes = In,
@@ -75,6 +76,7 @@ progress_cars_on_xroad_vertical(Roads, Crossroad, CrossRoadData) ->
     end,
     {UpdatedRoads, UpdatedCrossroad} = lists:foldl(
         fun(N, {CurrRoads, CurrCrossroad}) ->
+            io:format("VERTCXT:~p~n", [N]),
             Col = crossroad_helpers:get_column_crossroad(N, Crossroad, rising),
             progress_xroad_row(Col, CurrRoads, CurrCrossroad)
         end, {Roads, Crossroad}, lists:seq(0, InLanes - 1)),
@@ -82,6 +84,7 @@ progress_cars_on_xroad_vertical(Roads, Crossroad, CrossRoadData) ->
     %% todo left turn
     lists:foldl(
         fun(N, {CurrRoads, CurrCrossroad}) ->
+            io:format("VERT2CXT:~p~n", [N]),
             Col = crossroad_helpers:get_column_crossroad(N, Crossroad, falling),
             progress_xroad_row(Col, CurrRoads, CurrCrossroad)
         end, {UpdatedRoads, UpdatedCrossroad}, lists:seq(InLanes, InLanes + OutLanes - 1)).
@@ -89,27 +92,39 @@ progress_cars_on_xroad_vertical(Roads, Crossroad, CrossRoadData) ->
 
 progress_cars_on_xroad_horizontal(Roads, Crossroad, CrossRoadData) ->
     {#lanes_data{in_no_lanes = In, out_no_lanes = Out}, Which} = crossroad_helpers:lanes_data_compare(
-        maps:get(<<0>>, CrossRoadData), maps:get(<<2>>, CrossRoadData,crossroad_helpers:empty_lane_data())),
+        maps:get(1, CrossRoadData, crossroad_helpers:empty_lane_data()), maps:get(3, CrossRoadData,crossroad_helpers:empty_lane_data())),
     case Which of
         0 ->
             InLanes = In,
             OutLanes = Out;
         1 ->
             InLanes = Out,
-            OutLanes = In
+            OutLanes = In;
+        2 ->
+            OutLanes = 1,
+            InLanes = 0
     end,
+    io:format("HORZ2CXT:~p | ~p , ~p ~n", [Crossroad, InLanes, OutLanes]),
     {UpdatedRoads, UpdatedCrossroad} = lists:foldl(
         fun(N, {CurrRoads, CurrCrossroad}) ->
+
             Row = crossroad_helpers:get_row_crossroad(N, Crossroad, falling),
+            io:format("HORZCXT:~p~n", [Row]),
             progress_xroad_row(Row, CurrRoads, CurrCrossroad)
         end, {Roads, Crossroad}, lists:seq(0, OutLanes -1)),
 
     %% todo left turn
-    lists:foldl(
-        fun(N, {CurrRoads, CurrCrossroad}) ->
-            Row = crossroad_helpers:get_row_crossroad(N, Crossroad, rising),
-            progress_xroad_row(Row, CurrRoads, CurrCrossroad)
-        end, {UpdatedRoads, UpdatedCrossroad}, lists:seq(OutLanes, InLanes + OutLanes -1)).
+    case InLanes + OutLanes -1 < OutLanes of
+        true ->
+            {UpdatedRoads, UpdatedCrossroad};
+        false ->
+            lists:foldl(
+                fun(N, {CurrRoads, CurrCrossroad}) ->
+                    Row = crossroad_helpers:get_row_crossroad(N, Crossroad, rising),
+                    io:format("HORZ2CXT:~p~n", [Row]),
+                    progress_xroad_row(Row, CurrRoads, CurrCrossroad)
+                end, {UpdatedRoads, UpdatedCrossroad}, lists:seq(OutLanes, InLanes + OutLanes -1))
+    end.
 
 
 progress_xroad_row(Row, Roads, Crossroad) ->
@@ -120,69 +135,81 @@ progress_xroad_row(Row, Roads, Crossroad) ->
 
 progress_cell_on_xroad_row(CellId, Roads, Crossroad) ->
     XroadId = Crossroad#crossroad.id,
-    Cell = #cell{car = Car = #car{
+    io:format("CXT:~p~n", [CellId]),
+    Cell = #cell{car = Car} = maps:get(CellId, Crossroad#crossroad.cells),
+
+    case Car of
+        #car{
             velocity = Velocity,
             target_cell = Target
-    }} = maps:get(CellId, Crossroad#crossroad.cells),
-    CellWay = crossroad_helpers:get_cells_to_target(CellId, Target,Crossroad),
-    {Taken, LeftDistance, LastCellN} = progress_cell_on_xroad_row_helper(CellWay, Velocity, Crossroad),
-    case Taken of
-        true ->
-            {Roads, Crossroad};
-        false ->
-            UpdatedCrossroad = Crossroad#crossroad{
-                cells = maps:update(CellId, #cell{
-                    id = CellId,
-                    car = undefined
-                }, Crossroad#crossroad.cells)
-            },
-        case LeftDistance of
-            0 ->
-                {Roads, UpdatedCrossroad#crossroad{cells =
-                maps:update(LastCellN, Cell#cell{id=LastCellN}, Crossroad#crossroad.cells)}};
-            _ ->
-                case Roads of
-                    undefined ->
-                        {Roads, Crossroad#crossroad{
-                            cells = maps:update(LastCellN, #cell{id = LastCellN, car = Car}, Crossroad#crossroad.cells)}
-                        };
-                    _ ->
-                        {RoadId, LaneId} = crossroad_helpers:get_target(LastCellN, Crossroad, Roads),
-                        Road = #road{
-                            begin_crossroad = BeginXroad,
-                            end_crossroad = EndXroad,
-                            no_fractions = NoFractions,
-                            side_rising = SideRising,
-                            side_falling = SideFalling
-                        } = maps:get(RoadId, Roads),
-                        ProgressCtx = case XroadId of
-                            BeginXroad ->
-                                progress_ctx:init(LaneId, 0, RoadId, SideRising, EndXroad, NoFractions);
-                            EndXroad ->
-                                progress_ctx:init(LaneId, 0, RoadId, SideFalling, BeginXroad, NoFractions)
-                        end,
-                        ProgressCtx2 = progress_ctx:count_empty_cells(ProgressCtx),
-                        #lane{no_cells = NoCells} = progress_ctx:get_lane(ProgressCtx2),
-                        ProgressCtx3 = progress_ctx:set_cell_id(NoCells - 1, ProgressCtx2),
-                        case progress_ctx:is_empty(ProgressCtx3) of
-                            true ->
-                                ProgressCtx4 = progress_ctx:set_car(Car, ProgressCtx3),
-                                ProgressCtx5 = try_move_forward(ProgressCtx4),
-                                {
-                                    Roads#{RoadId => Road#road{
-                                        side_rising = progress_ctx:get_fraction(ProgressCtx5)
-                                    }},
-                                    Crossroad#crossroad{
-                                        cells = maps:update(LastCellN, #cell{id = LastCellN, car = undefined}, Crossroad#crossroad.cells)
-                                    }
-                                };
-                            false ->
-                                {Roads, Crossroad#crossroad{
-                                    cells = maps:update(LastCellN, #cell{id = LastCellN, car = Car}, Crossroad#crossroad.cells)
-                                }}
-                        end
-                end
-        end
+        } ->
+            io:format("CXT0:~p~n", [CellId]),
+            CellWay = crossroad_helpers:get_cells_to_target(CellId, Target,Crossroad),
+            io:format("CXT1:~p~n", [CellId]),
+            {Taken, LeftDistance, LastCellN} = progress_cell_on_xroad_row_helper(CellWay, Velocity, Crossroad),
+            io:format("CXT2:~p~n", [CellId]),
+            case Taken of
+                true ->
+                    {Roads, Crossroad};
+                false ->
+                    io:format("CXTFALSE:~p~n", [CellId]),
+                    UpdatedCrossroad = Crossroad#crossroad{
+                        cells = maps:update(CellId, #cell{
+                            id = CellId,
+                            car = undefined
+                        }, Crossroad#crossroad.cells)
+                    },
+                    case LeftDistance of
+                        0 ->
+                            {Roads, UpdatedCrossroad#crossroad{cells =
+                            maps:update(LastCellN, Cell#cell{id=LastCellN}, Crossroad#crossroad.cells)}};
+                        _ ->
+                            case Roads of
+                                undefined ->
+                                    {Roads, Crossroad#crossroad{
+                                        cells = maps:update(LastCellN, #cell{id = LastCellN, car = Car}, Crossroad#crossroad.cells)}
+                                    };
+                                _ ->
+                                    io:format("JAKUB WIESZA:~n", []),
+                                    {RoadId, LaneId} = crossroad_helpers:get_target(LastCellN, Crossroad, Roads),
+                                    Road = #road{
+                                        begin_crossroad = BeginXroad,
+                                        end_crossroad = EndXroad,
+                                        no_fractions = NoFractions,
+                                        side_rising = SideRising,
+                                        side_falling = SideFalling
+                                    } = maps:get(RoadId, Roads),
+                                    ProgressCtx = case XroadId of
+                                                      BeginXroad ->
+                                                          progress_ctx:init(LaneId, 0, RoadId, SideRising, EndXroad, NoFractions);
+                                                      EndXroad ->
+                                                          progress_ctx:init(LaneId, 0, RoadId, SideFalling, BeginXroad, NoFractions)
+                                                  end,
+                                    ProgressCtx2 = progress_ctx:count_empty_cells(ProgressCtx),
+                                    #lane{no_cells = NoCells} = progress_ctx:get_lane(ProgressCtx2),
+                                    ProgressCtx3 = progress_ctx:set_cell_id(NoCells - 1, ProgressCtx2),
+                                    case progress_ctx:is_empty(ProgressCtx3) of
+                                        true ->
+                                            ProgressCtx4 = progress_ctx:set_car(Car, ProgressCtx3),
+                                            ProgressCtx5 = try_move_forward(ProgressCtx4),
+                                            {
+                                                Roads#{RoadId => Road#road{
+                                                    side_rising = progress_ctx:get_fraction(ProgressCtx5)
+                                                }},
+                                                Crossroad#crossroad{
+                                                    cells = maps:update(LastCellN, #cell{id = LastCellN, car = undefined}, Crossroad#crossroad.cells)
+                                                }
+                                            };
+                                        false ->
+                                            {Roads, Crossroad#crossroad{
+                                                cells = maps:update(LastCellN, #cell{id = LastCellN, car = Car}, Crossroad#crossroad.cells)
+                                            }}
+                                    end
+                            end
+                    end
+            end;
+        _ ->
+            {Roads, Crossroad}
     end.
 
 
@@ -193,6 +220,7 @@ progress_cell_on_xroad_row_helper([], CurrDistance, Crossroad) ->
 
 progress_cell_on_xroad_row_helper([N | Tail], CurrDistance, Crossroad) ->
     CurrCell = maps:get(N,Crossroad#crossroad.cells),
+    io:format("CXH:~p~n", [N]),
     case CurrCell#cell.car of
         undefined ->
             {Taken, LeftDistance, LastCellN} = progress_cell_on_xroad_row_helper(Tail, CurrDistance - 1, Crossroad),
@@ -208,7 +236,7 @@ progress_cell_on_xroad_row_helper([N | Tail], CurrDistance, Crossroad) ->
 
 gen_xroad_lane_data_map(Roads, AdjRoads, XRoadId) ->
     maps:fold(
-      fun(Num, RoadId, {CurrLaneMap}) ->
+      fun(Num, RoadId, CurrLaneMap) ->
           #road{
               begin_crossroad = BeginX,
               end_crossroad = EndX,
@@ -224,7 +252,7 @@ gen_xroad_lane_data_map(Roads, AdjRoads, XRoadId) ->
               EndX ->
                   maps:put(Num, #lanes_data{out_no_lanes = NoLanesFalling, in_no_lanes = NoLanesRising}, CurrLaneMap)
           end
-      end, {#{}}, AdjRoads
+      end, #{}, AdjRoads
     ).
 
 %%%-------------------------------  ------------------------------------
@@ -236,6 +264,7 @@ gen_xroad_lane_data_map(Roads, AdjRoads, XRoadId) ->
 %%%-------------------------------------------------------------------
 progress_cars_on_roads(Roads0, Crossroads0) ->
     maps:fold(fun(RoadId, Road, {Roads, Crossroads}) ->
+        io:format("R:~p~n", [RoadId]),
         {UpdatedRoad, UpdatedCrossroads} = progress_cars_on_road(Road, Crossroads),
         {Roads#{RoadId => UpdatedRoad}, UpdatedCrossroads}
     end, {Roads0, Crossroads0} , Roads0).
