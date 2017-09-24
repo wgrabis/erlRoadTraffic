@@ -130,8 +130,13 @@ progress_cell_on_xroad_row(CellId, Roads, Crossroad) ->
             {Roads, Crossroad#crossroad{cells =
             maps:update(LastCellN, #cell{id = Id, car = Car}, Crossroad#crossroad.cells)}};
         Value ->
-            1 = 1
-            %% todo Enter road
+            case Roads of
+                undefined ->
+                    {_, Crossroad#crossroad{cells =
+                    maps:update(LastCellN, #cell{id = Id, car = Car}, Crossroad#crossroad.cells)}};
+                _ ->
+                    %% erlang
+            end
     end.
 
 
@@ -454,7 +459,7 @@ move_car_to_xroad(Car = #car{velocity = Velocity}, Ctx) ->
                     BeginCell#cell{car = UpdatedCar},
                     Crossroad#crossroad.cells)
             },
-            progress_cell_on_xroad_row(BeginCell, _, UpdatedCrossroad),
+            {_, ProgressedCrossroad} = progress_cell_on_xroad_row(BeginCell, _, UpdatedCrossroad),
             %% update and get roads
             Ctx
     end.
@@ -470,4 +475,5 @@ choose_turn_rule([Rule |Tail]) ->
             Val
     end.
 
-get_begin_cell()
+get_begin_cell() ->
+    .
