@@ -26,11 +26,15 @@ start(_StartType, _StartArgs) ->
         roads = Roads,
         crossroads = Crossroads
     } = model:initialize(Nodes, Ways),
+
+    RoadId = 1,
     Road = #road{
-        side_falling = SideFalling,
+%%        side_falling = SideFalling,
         side_rising = SideRising
-    } = maps:get(119918895, Roads),
-%%    io:format("RoadMap: ~p~n", [RoadMap]),
+    } = maps:get(RoadId, Roads),
+    Tours = 100,
+
+    %%    io:format("RoadMap: ~p~n", [RoadMap]),
 %%    io:format("Roads: ~p~n", [maps:keys(Roads)]),
 %%    io:format("Roads: ~p~n", [Roads]),
 %%    io:format("Road: ~p~n", [Road]),
@@ -38,21 +42,23 @@ start(_StartType, _StartArgs) ->
 %%    io:format("SideFalling: ~p~n", [SideFalling]),
 %%    io:format("XRoads: ~p~n", [maps:keys(Crossroads)]),
 %%    try
-    RoadId = 119918895,
-    Car = #car{id = 1, velocity = 2},
-    RoadMap2 = model:insert_car(Car, 0, 0, 0, rising, RoadId, RoadMap),
-    io:format("RoadMap2: ~p~n", [RoadMap2]),
-    R = (catch simulation:simulate(RoadMap2)),
-%%    io:format("#################################Error#####################################~n"),
-    io:format("#################################RESULT#####################################~n"),
-    io:format("#################################RESULT#####################################~n"),
-    io:format("#################################RESULT#####################################~n"),
-    io:format("~p~nKONIEC", [R]).
-%%    catch
-%%        E1:E2 ->
-%%            io:format("~p:~p", [E1, E2])
-%%    end.
 
+    Car = #car{id = 1, velocity = 2},
+    RoadMap1 = #road_map{roads = Roads1} = model:insert_car(Car, 0, 0, 0, rising, RoadId, RoadMap),
+    Road1 = #road{side_rising = SideRising1} = maps:get(RoadId, Roads1),
+
+    io:format("#################################RESULT#####################################~n"),
+    io:format("~p~~n", [SideRising1]),
+    io:format("#################################RESULT#####################################~n"),
+
+    lists:foldl(fun(Tour, RoadMap0) ->
+        RoadMap2 = #road_map{roads = Roads2} = (catch simulation:simulate(RoadMap0, Tour)),
+        Road2 = #road{side_rising = SideRising2} = maps:get(RoadId, Roads2),
+        io:format("#################################RESULT#####################################~n"),
+        io:format("~p~~n", [SideRising2]),
+        io:format("#################################RESULT#####################################~n"),
+        RoadMap2
+    end, RoadMap, lists:seq(1, Tours)).
 
 %%--------------------------------------------------------------------
 stop(_State) ->

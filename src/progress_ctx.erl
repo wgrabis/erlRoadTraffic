@@ -24,7 +24,7 @@
     get_lane_ids/1, set_lane_id/2, count_empty_cells/1, get_fractions_no/1, update_fractions/2,
     get_column_crossroad/2, get_row_crossroad/2, get_cell_crossroad/3, set_cell_crossroad/4,
     set_column_crossroad/3, set_row_crossroad/3, id_to_position/2
-    , is_empty/1, set_car/2, update_cell/2, update_lane/2, set_xroad/2, get_road_id/1]).
+    , is_empty/1, set_car/2, update_cell/2, update_lane/2, set_xroad/2, get_road_id/1, get_crossroad_lane_rules/1, get_cells_number/1]).
 
 -record(progress_ctx, {
     cell_id :: id(),
@@ -123,6 +123,11 @@ get_cells(LaneId, FractionId, Ctx) ->
 
 get_cells(Ctx = #progress_ctx{lane_id = LaneId, fraction_id = FractionId}) ->
     get_cells(LaneId, FractionId, Ctx).
+
+get_cells_number(Ctx) ->
+    #lane{no_cells = CellsNo} = get_lane(Ctx),
+    CellsNo.
+
 
 get_lane_id(#progress_ctx{lane_id=LaneId}) ->
     LaneId.

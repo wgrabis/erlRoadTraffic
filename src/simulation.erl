@@ -16,7 +16,7 @@
 
 %% API
 %%-export([change_lane/2]).
--export([simulate/1]).
+-export([simulate/2]).
 
 
 
@@ -26,10 +26,10 @@
 %%% @end
 %%%-------------------------------------------------------------------
 
-simulate(#road_map{roads=Roads, crossroads=Crossroads}) ->
+simulate(#road_map{roads=Roads, crossroads=Crossroads}, Tour) ->
     {UpdatedRoads, UpdatedCrossroads} = progress_cars_on_roads(Roads, Crossroads),
-%%    {UpdatedRoads2, UpdatedCrossroads2} = progress_cars_on_xroads(UpdatedRoads, UpdatedCrossroads),
-    #road_map{roads= UpdatedRoads, crossroads = UpdatedCrossroads}.
+    {UpdatedRoads2, UpdatedCrossroads2} = progress_cars_on_xroads(UpdatedRoads, UpdatedCrossroads, Tour),
+    #road_map{roads= UpdatedRoads2, crossroads = UpdatedCrossroads2}.
 
 %%%-------------------------------------------------------------------
 %%% @doc
@@ -399,6 +399,7 @@ change_to_right_or_left(_, _) ->
     end.
 
 try_move_forward(Ctx) ->
+    io:format("try_move_forward~n"),
     SrcCellId = progress_ctx:get_cell_id(Ctx),
     SrcCell = #cell{car = Car} = progress_ctx:get_cell(Ctx),
     SrcLaneId = progress_ctx:get_lane_id(Ctx),
@@ -421,15 +422,18 @@ try_move_forward(Ctx) ->
             {Car#car{velocity=0}, EmptyCellsBefore}
     end,
 
+    io:format("Dupa2: ~p~n", [{UpdatedCar, DeltaX}]),
+
     case DeltaX of
         0 ->
             Ctx;
         _ ->
             %% todo refactor, extract to separate function            
             TargetCellId = SrcCellId + DeltaX,
-            NoFractions = progress_ctx:get_fractions_no(Ctx),
-            case TargetCellId - NoFractions of
+            NoCells = progress_ctx:get_cells_number(Ctx),
+            case TargetCellId - NoCells of
                 TargetCellId2 when TargetCellId2 < 0 ->
+                    io:format("Dupa3~n"),
                     % move in range of same road_fraction
                     SrcCell2 = SrcCell#cell{car = undefined},
                     TargetCell = maps:get(TargetCellId, SrcCells),
@@ -443,10 +447,19 @@ try_move_forward(Ctx) ->
                     NewRoadFraction = SrcFraction#road_fraction{lanes = Lanes2},
                     progress_ctx:update_fraction(NewRoadFraction, Ctx);
                 TargetCellId2 ->
+                    io:format("Dupa4~n"),
                     case FractionId == NoFractions - 1 of
                         true ->
-                            move_car_to_xroad(UpdatedCar, Ctx);
+                            io:format("Dupa5~n: ~p", [Ctx]),
+                            SrcCell2 = SrcCell#cell{car = undefined},
+                            SrcCells2 = SrcCells#{SrcCellId => SrcCell2},
+                            SrcLane2 = SrcLane#lane{cells = SrcCells2},
+                            Lanes2 = SrcLanes#{SrcLaneId => SrcLane2},
+                            NewRoadFraction = SrcFraction#road_fraction{lanes = Lanes2},
+                            Ctx2 = progress_ctx:update_fraction(NewRoadFraction, Ctx),
+                            move_car_to_xroad(UpdatedCar, Ctx2);
                         _ ->
+                            io:format("Dupa6~n"),
                             TargetFraction = #road_fraction{lanes = TargetLanes}
                                 = maps:get(FractionId + 1, RoadFractions),
                             TargetLaneId = maps:get(SrcLaneId, SpecialRules, SrcLaneId),
@@ -491,24 +504,31 @@ way_is_free(Velocity, EmptyCellsBefore) ->
 
 move_car_to_xroad(Car = #car{velocity = Velocity}, Ctx) ->
     Crossroad = progress_ctx:get_crossroad(Ctx),
+    LaneId = progress_ctx:get_lane_id(Ctx),
     Rules = progress_ctx:get_crossroad_lane_rules(Ctx),
-    TurnRule = choose_turn_rule(Rules),
-    case get_begin_cell(Ctx, Crossroad) of
-        none ->
+    case map_size(Rules) of
+        0 ->
             Ctx;
-        BeginCell ->
-            UpdatedCar = Car#car{
-                velocity = Velocity - 1,
-                target_cell = crossroad_helpers:count_target_cell(TurnRule, BeginCell, Crossroad)
-            },
-            UpdatedCrossroad = Crossroad#crossroad{
-                cells = maps:update(
-                    BeginCell,
-                    BeginCell#cell{car = UpdatedCar},
-                    Crossroad#crossroad.cells)
-            },
-            {_, ProgressedCrossroad} = progress_cell_on_xroad_row(BeginCell, undefined, UpdatedCrossroad),
-            progress_ctx:set_xroad(ProgressedCrossroad, Ctx)
+        _ ->
+
+        TurnRule = choose_turn_rule(maps:get(LaneId, Rules)),
+        case get_begin_cell(Ctx, Crossroad) of
+            none ->
+                Ctx;
+            BeginCell ->
+                UpdatedCar = Car#car{
+                    velocity = Velocity - 1,
+                    target_cell = crossroad_helpers:count_target_cell(TurnRule, BeginCell, Crossroad)
+                },
+                UpdatedCrossroad = Crossroad#crossroad{
+                    cells = maps:update(
+                        BeginCell,
+                        BeginCell#cell{car = UpdatedCar},
+                        Crossroad#crossroad.cells)
+                },
+                {_, ProgressedCrossroad} = progress_cell_on_xroad_row(BeginCell, undefined, UpdatedCrossroad),
+                progress_ctx:set_xroad(ProgressedCrossroad, Ctx)
+        end
     end.
 
 

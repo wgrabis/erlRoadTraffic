@@ -31,15 +31,8 @@
 %%%-------------------------------------------------------------------
 initialize(Nodes, Ways) ->
   {BaseGraph, BaseTransposeGraph} = build_graphs(Ways),
-  io:format("~nBase:~n ~p", [BaseGraph]),
   {Graph, TransposeGraph} = compress_osm_graph(BaseGraph, BaseTransposeGraph),
-  io:format("~nCompressed:~n ~p", [Graph]),
-  io:format("~nCompressedT:~n ~p", [TransposeGraph]),
-  %todo tutaj aktualizacja wayów o nowe waye
   {Graph2, TransposeGraph2, Ways2} = update_ways(Graph, TransposeGraph, Ways),
-  io:format("~nGraph2:~n ~p", [Graph2]),
-  io:format("~nTransposeGraph2:~n ~p", [TransposeGraph2]),
-  io:format("~nWays2:~n ~p", [Ways2]),
   XGraph = build_crossroad_graphs_and_simplify(Graph2, TransposeGraph2),
   initialize_road_map(#graphData{
     node_data = Nodes,
@@ -189,14 +182,6 @@ update_ways(CompressedGraph, TCompressedGraph, Ways) ->
   {CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays} =
     filter_unchanged_ways(CompressedGraph, TCompressedGraph, Ways),
 
-  io:format("
-  CompressedGraph1: ~p
-  CompressedGraphUnchanged1: ~p
-  TCompressedGraph1: ~p
-  TCompressedGraphUnchanged1: ~p
-  ChangedWays: ~p
-  UnchangedWays: ~p
-  ", [CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays]),
   update_ways(CompressedGraph1, CompressedGraphUnchanged1, TCompressedGraph1, TCompressedGraphUnchanged1, ChangedWays, UnchangedWays).
 
 filter_unchanged_ways(Graph, TGraph, Ways) ->
