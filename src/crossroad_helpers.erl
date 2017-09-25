@@ -76,8 +76,7 @@ get_cells_to_target(Xstart, Xstart, _) ->
     [];
 
 get_cells_to_target(Xstart, Xtarget, #crossroad{
-    width = Width,
-    length = Length
+    width = Width
 }) ->
     {X1, Y1} = progress_ctx:id_to_position(Xstart, Width),
     {X2, Y2} = progress_ctx:id_to_position(Xtarget, Width),
@@ -86,7 +85,7 @@ get_cells_to_target(Xstart, Xtarget, #crossroad{
             lists:foldl(fun(X, List) ->
                     [Y1 * Width + X] ++ List
                 end, [], lists:seq(X1, X2));
-        %%todo kuba fix -- important
+        %%todo seq will fail when X1 > X2
         false ->
             case X1 == X2 of
             true ->
@@ -196,8 +195,6 @@ get_begin_cell_number(LaneId, #road_fraction{
     width = Width,
     length = Length
 }) ->
-%%    io:format("RoadId: ~p", [LaneId]),
-%%    io:format("Crossroad: ~p", [Crossroad]),
     %% this can fuck up based on lane id numeration
     case crossroad_helpers:get_ord_number(RoadId, Crossroad) of
         3 ->

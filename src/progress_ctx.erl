@@ -68,7 +68,7 @@ is_empty(Ctx) ->
     end.
 
 set_xroad(Crossroad, Ctx) ->
-    #progress_ctx{crossroad = Crossroad}.
+    Ctx#progress_ctx{crossroad = Crossroad}.
 
 set_car(Car, Ctx) ->
     Cell = get_cell(Ctx),
@@ -156,8 +156,6 @@ get_fraction_id(#progress_ctx{fraction_id= FractionId}) ->
     FractionId.
 
 get_fraction(FractionId, Ctx) ->
-%%    io:format("FractionId: ~p", [FractionId]),
-%%    io:format("Ctx: ~p", [Ctx]),
     maps:get(FractionId, get_fractions(Ctx)).
 
 get_fraction(Ctx =#progress_ctx{fraction_id = FractionId}) ->
@@ -197,7 +195,6 @@ get_road_id(#progress_ctx{
     RoadId.
 
 count_empty_cells(Ctx = #progress_ctx{
-    road_id = RoadId,
     fraction_id = FractionId,
     road_fractions = RoadFractions
 }) ->
@@ -219,7 +216,7 @@ count_empty_cells(#cell{}, EmptyCells, _Cells) ->
 
 
 
-get_crossroad_lane_rules(Ctx = #progress_ctx{
+get_crossroad_lane_rules(#progress_ctx{
     fraction_id = FractionId,
     road_fractions = Fractions
 }) ->
