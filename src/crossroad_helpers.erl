@@ -21,7 +21,7 @@
     get_cells_to_target/3,
     count_target_cell/3,
     get_begin_cell_number/4,
-    get_target/3]).
+    get_target/3, get_ord_number/2]).
 
 
 lanes_data_compare(ALanes = #lanes_data{in_no_lanes = AInLanes, out_no_lanes = AOutLanes},
@@ -181,12 +181,12 @@ count_target_cell(Rule, StartCellNo, Crossroad = #crossroad{
 
 
 get_ord_number(RoadId, Crossroad) ->
-    maps:fold(fun(N, Road, _) ->
-        case Road#road.id == RoadId of
+    maps:fold(fun(N, Road, ParInfo) ->
+        case Road == RoadId of
             true ->
                 N;
             false ->
-                init
+                ParInfo
         end
     end, init, Crossroad#crossroad.roads).
 
@@ -196,6 +196,8 @@ get_begin_cell_number(LaneId, #road_fraction{
     width = Width,
     length = Length
 }) ->
+%%    io:format("RoadId: ~p", [LaneId]),
+%%    io:format("Crossroad: ~p", [Crossroad]),
     %% this can fuck up based on lane id numeration
     case crossroad_helpers:get_ord_number(RoadId, Crossroad) of
         3 ->

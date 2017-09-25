@@ -156,6 +156,8 @@ get_fraction_id(#progress_ctx{fraction_id= FractionId}) ->
     FractionId.
 
 get_fraction(FractionId, Ctx) ->
+%%    io:format("FractionId: ~p", [FractionId]),
+%%    io:format("Ctx: ~p", [Ctx]),
     maps:get(FractionId, get_fractions(Ctx)).
 
 get_fraction(Ctx =#progress_ctx{fraction_id = FractionId}) ->
@@ -178,10 +180,14 @@ get_empty_cells_number(Ctx = #progress_ctx{
     empty_cells_before = EmptyCells
 }) ->
     #road_fraction{special_rules = SpecialRules} = get_fraction(Ctx),
-    case maps:is_key(LaneId, SpecialRules) of
-        false ->
+    case maps:get(LaneId, SpecialRules, undefined) of
+        undefined ->
             maps:get(LaneId, EmptyCells, 0);
-        _ ->
+        [?STRAIGHT_RULE] ->
+            maps:get(LaneId, EmptyCells, 0);
+        [?MERGE_LEFT] ->
+            0;
+        [?MERGE_RIGHT] ->
             0
     end.
 
@@ -192,22 +198,26 @@ get_road_id(#progress_ctx{
 
 count_empty_cells(Ctx = #progress_ctx{
     road_id = RoadId,
-    crossroad = XRoad =
-        #crossroad{
-            width = Width,
-            length = Length
-}}) ->
+    fraction_id = FractionId,
+    road_fractions = RoadFractions
+}) ->
 
-    EmptyCells = lists:foldl(fun(N, AccIn) ->   %todo only for tests
-        AccIn#{N => 100}
-    end, #{}, lists:seq(0, 10)),
+    #road_fraction{lanes = Lanes} = maps:get(FractionId, RoadFractions),
+    EmptyCells = maps:fold(fun(LaneId, #lane{cells = Cells, no_cells = CellsNo}, AccIn) ->   %todo only for tests
+        EmptyCells = count_empty_cells(maps:get(CellsNo - 1, Cells), 0, Cells),
+        AccIn#{LaneId => EmptyCells}
+    end, #{}, Lanes),
     Ctx#progress_ctx{empty_cells_before = EmptyCells}.
-%%    case RoadId rem 2 == 0 of
-%%        true ->
-%%            lists:foldr(fun() ->
-%%                ok %todo
-%%            end, #{}, lists:seq(0, Width - 1))
-%%    end.
+
+
+count_empty_cells(#cell{id = 0, car = undefined}, EmptyCells, _Cells) ->
+    EmptyCells + 1;
+count_empty_cells(#cell{id = Id, car = undefined}, EmptyCells, Cells) ->
+    count_empty_cells(maps:get(Id - 1, Cells), EmptyCells + 1, Cells);
+count_empty_cells(#cell{}, EmptyCells, _Cells) ->
+    EmptyCells.
+
+
 
 get_crossroad_lane_rules(Ctx = #progress_ctx{
     fraction_id = FractionId,

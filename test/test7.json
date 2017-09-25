@@ -9,6 +9,8 @@
         13
       ],
       "tags": {
+        "turn:lanes:forward": "through",
+        "turn:lanes:backward": "through"
       }
     },
     {
@@ -19,7 +21,11 @@
         14,
         15,
         19
-      ]
+      ],
+      "tags": {
+        "turn:lanes:forward": "through",
+        "turn:lanes:backward": "through"
+      }
     },
     {
       "type": "way",
@@ -28,7 +34,11 @@
         13,
         16,
         17
-      ]
+      ],
+      "tags": {
+        "turn:lanes:forward": "through",
+        "turn:lanes:backward": "through"
+      }
     },
     {
       "type": "way",
@@ -37,7 +47,11 @@
         17,
         111,
         112
-      ]
+      ],
+      "tags": {
+        "turn:lanes:forward": "through",
+        "turn:lanes:backward": "through"
+      }
     },
     {
       "type": "way",
@@ -46,7 +60,11 @@
         17,
         18,
         19
-      ]
+      ],
+      "tags": {
+        "turn:lanes:forward": "through",
+        "turn:lanes:backward": "through"
+      }
     },
     {
       "type": "way",
@@ -54,7 +72,11 @@
       "nodes": [
         19,
         110
-      ]
+      ],
+      "tags": {
+        "turn:lanes:forward": "through",
+        "turn:lanes:backward": "through"
+      }
     },
     {
       "type": "node",
